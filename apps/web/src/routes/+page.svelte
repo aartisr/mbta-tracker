@@ -1306,6 +1306,7 @@
 
   .header-layout {
     @apply max-w-6xl mx-auto px-2.5 py-2 flex items-center justify-between gap-1;
+    width: min(100%, 72rem);
   }
 
   .app-logo {
@@ -1350,6 +1351,7 @@
 
   .header-actions {
     @apply flex items-center gap-1.5 ml-auto;
+    flex-shrink: 0;
   }
 
   .settings-button {
@@ -2045,6 +2047,7 @@
     .layout-container {
       display: flex;
       flex: 1;
+      justify-content: center;
     }
 
     .main-content {
@@ -2065,6 +2068,7 @@
       gap: 0.75rem;
       padding-left: 1.75rem;
       padding-right: 1.75rem;
+      width: min(100%, 72rem);
     }
 
     .main-nav {
