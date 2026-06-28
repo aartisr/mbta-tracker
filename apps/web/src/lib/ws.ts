@@ -1,4 +1,5 @@
 import { vehicles, wsRetryIn, wsStatus } from './store';
+import { resolveRealtimeSocketUrl } from './tracker/realtime-url';
 const map=new Map();
 
 let ws: WebSocket | null = null;
@@ -9,10 +10,7 @@ let reconnectAttempts = 0;
 const MAX_BACKOFF_MS = 30000;
 
 function resolveWsUrl(){
-  const configured = import.meta.env.PUBLIC_WS_URL || 'ws://localhost:8080';
-  if (configured.startsWith('http://')) return configured.replace('http://', 'ws://');
-  if (configured.startsWith('https://')) return configured.replace('https://', 'wss://');
-  return configured;
+  return resolveRealtimeSocketUrl(null);
 }
 
 function nextBackoffMs(){

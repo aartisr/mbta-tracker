@@ -1,10 +1,8 @@
 import { writable, type Readable, type Writable } from 'svelte/store';
 import { buildTripSummaries, mergeAlertData, mergeTripData, parseVehicleList, sortVehicles } from './normalize';
+import { resolveRealtimeSocketUrl } from './realtime-url';
 import type { ConnectionState, TrackerAlert, TrackerState, TrackerTrip, TrackerVehicle, TrackerWidgetConfig } from './types';
 import { getGlobalContainer, type ServiceContainer } from './services';
-
-const PUBLIC_WS_URL: string | undefined =
-  typeof import.meta !== 'undefined' ? (import.meta.env?.PUBLIC_WS_URL as string | undefined) : undefined;
 
 const INITIAL_CONNECTION: ConnectionState = {
   status: 'idle',
@@ -21,47 +19,6 @@ const INITIAL_STATE: TrackerState = {
   lastUpdatedAt: null,
   selectedVehicleId: null
 };
-
-function normalizeSocketUrl(candidate: string | null): string | null {
-  if (!candidate) {
-    return null;
-  }
-
-  if (candidate.startsWith('ws://') || candidate.startsWith('wss://')) {
-    return candidate;
-  }
-
-  if (candidate.startsWith('http://')) {
-    return candidate.replace('http://', 'ws://');
-  }
-
-  if (candidate.startsWith('https://')) {
-    return candidate.replace('https://', 'wss://');
-  }
-
-  return candidate;
-}
-
-function resolveTransportUrl(preferred: string | null): string {
-  const configured = normalizeSocketUrl(preferred) ?? normalizeSocketUrl(PUBLIC_WS_URL ?? null) ?? null;
-  if (configured) {
-    return configured;
-  }
-
-  if (typeof window !== 'undefined') {
-    const host = window.location.hostname;
-    // In local dev, web (5173) and realtime server (8080) are separate processes.
-    if (host === 'localhost' || host === '127.0.0.1') {
-      return `ws://${host}:8080`;
-    }
-
-    const relative = new URL('/ws', window.location.href);
-    relative.protocol = relative.protocol === 'https:' ? 'wss:' : 'ws:';
-    return relative.toString();
-  }
-
-  return 'ws://127.0.0.1:8080/ws';
-}
 
 function backoffMs(attempt: number, maxBackoffMs: number): number {
   const base = Math.min(1000 * 2 ** attempt, maxBackoffMs);
@@ -98,7 +55,7 @@ export function createTrackerController(config: TrackerWidgetConfig, container?:
   let retryDeadline = 0;
 
   const maxBackoffMs = 30000;
-  const socketUrl = resolveTransportUrl(config.wsUrl);
+  const socketUrl = resolveRealtimeSocketUrl(config.wsUrl);
 
   function pushConnection(next: Partial<ConnectionState>) {
     connection.update((current) => ({ ...current, ...next }));

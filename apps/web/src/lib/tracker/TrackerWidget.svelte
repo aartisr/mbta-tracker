@@ -1430,12 +1430,12 @@
   $: lastUpdatedLabel = formatElapsedTime(currentState.lastUpdatedAt);
   $: activeModesLabel = summarizeModes(visibleVehicles);
   $: headlineAlert = visibleAlerts.find((alert) => alert.severity === 'high') ?? visibleAlerts[0] ?? null;
-  $: statusText =
-    connection.status === 'reconnecting' && connection.retryInSeconds > 0
-      ? `Realtime reconnecting in ${connection.retryInSeconds}s`
-      : connection.status === 'error' && connection.lastError
-        ? `Realtime error: ${connection.lastError}`
-        : `Realtime ${connection.status}`;
+  $: statusChipLabel =
+    connection.status === 'open'
+      ? 'Live connected'
+      : connection.status === 'reconnecting' || connection.status === 'connecting'
+        ? 'Connecting'
+        : 'Worker unavailable';
   $: vehicleEmptyMessage =
     selectedMode === 'ferry'
       ? 'No live ferry vehicles are currently being reported by MBTA.'
@@ -1451,27 +1451,13 @@
     </div>
     <div class="status-bar">
       <span class="live-dot" data-status={connection.status}></span>
-      <span class="status-text" data-status={connection.status}>{statusText}</span>
-      
-      <!-- Network status indicator (honesty) -->
-      {#if isOffline}
-        <span class="network-status offline" title="You are offline. Data is cached.">
-          ⚠️ Offline
-        </span>
-      {:else}
-        <span class="network-status online" title="Connected to live data">
-          📡 Live
-        </span>
-      {/if}
-
-      <!-- Data freshness (honesty) -->
-      <span class="data-freshness" title="Data freshness: {formatFreshnessLabel()}">
-        {getDataQualityEmoji()} {formatFreshnessLabel()}
-      </span>
-
-      <span class="vehicle-count">
-        <span class="count-num">{visibleVehicles.length}</span>
-        <span class="count-label">live</span>
+      <span class="status-chip" data-status={connection.status}>{statusChipLabel}</span>
+      <span class="status-summary" aria-label="Live connection summary">
+        <span class="status-summary-item">{isOffline ? 'Offline' : 'Live'}</span>
+        <span class="status-summary-sep" data-separator="freshness" aria-hidden="true">·</span>
+        <span class="status-summary-item" data-summary="freshness">{formatFreshnessLabel()}</span>
+        <span class="status-summary-sep" data-separator="count" aria-hidden="true">·</span>
+        <span class="status-summary-item">{visibleVehicles.length} live</span>
       </span>
       {#if ferryVehicleCount > 0}
         <span class="ferry-badge" title="Live ferry vehicles">
@@ -1820,8 +1806,8 @@
   }
 
   :global(.dark-mode .status-bar) {
-    background: rgba(15, 26, 42, 0.8);
-    border: 1px solid rgba(255, 251, 245, 0.1);
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.94), rgba(30, 41, 59, 0.9));
+    border: 1px solid rgba(148, 163, 184, 0.16);
     box-shadow: 0 14px 34px rgba(0, 0, 0, 0.3);
   }
 
@@ -1860,35 +1846,65 @@
     50% { box-shadow: 0 0 0 5px rgba(245, 158, 11, 0); }
   }
 
-  .status-text {
-    font-size: 0.8rem;
-    color: #475569;
-    white-space: nowrap;
-  }
-
-  .status-text[data-status='open'] { color: #15803d; }
-  .status-text[data-status='error'], .status-text[data-status='closed'] { color: #dc2626; }
-
-  .vehicle-count {
-    display: flex;
-    align-items: baseline;
-    gap: 0.25rem;
-    padding-left: 0.5rem;
-    border-left: 1px solid rgba(15, 23, 42, 0.1);
-  }
-
-  .count-num {
-    font-size: 1rem;
+  .status-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 1.75rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
     font-weight: 700;
-    color: #2563eb;
-    line-height: 1;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    background: rgba(226, 232, 240, 0.9);
+    color: #0f172a;
+    border: 1px solid rgba(148, 163, 184, 0.24);
   }
 
-  .count-label {
-    font-size: 0.72rem;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+  .status-chip[data-status='open'] {
+    background: rgba(220, 252, 231, 0.95);
+    color: #166534;
+    border-color: rgba(34, 197, 94, 0.22);
+  }
+
+  .status-chip[data-status='connecting'],
+  .status-chip[data-status='reconnecting'] {
+    background: rgba(254, 243, 199, 0.95);
+    color: #92400e;
+    border-color: rgba(245, 158, 11, 0.22);
+  }
+
+  .status-chip[data-status='error'],
+  .status-chip[data-status='closed'],
+  .status-chip[data-status='idle'] {
+    background: rgba(254, 226, 226, 0.95);
+    color: #991b1b;
+    border-color: rgba(239, 68, 68, 0.22);
+  }
+
+  :global(.dark-mode .status-chip) {
+    background: rgba(15, 23, 42, 0.9);
+    color: #e2e8f0;
+    border-color: rgba(148, 163, 184, 0.2);
+  }
+
+  :global(.dark-mode .status-chip[data-status='open']) {
+    background: rgba(20, 83, 45, 0.32);
+    color: #86efac;
+  }
+
+  :global(.dark-mode .status-chip[data-status='connecting']),
+  :global(.dark-mode .status-chip[data-status='reconnecting']) {
+    background: rgba(120, 53, 15, 0.35);
+    color: #fcd34d;
+  }
+
+  :global(.dark-mode .status-chip[data-status='error']),
+  :global(.dark-mode .status-chip[data-status='closed']),
+  :global(.dark-mode .status-chip[data-status='idle']) {
+    background: rgba(127, 29, 29, 0.34);
+    color: #fca5a5;
   }
 
   .ferry-badge {
@@ -1921,60 +1937,49 @@
     50% { box-shadow: 0 2px 12px rgba(3, 105, 161, 0.5); }
   }
 
-  .network-status {
+  .status-summary {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.3rem 0.6rem;
-    border-radius: 999px;
-    font-size: 0.75rem;
+    gap: 0.35rem;
+    padding-left: 0.55rem;
+    margin-left: 0.15rem;
+    border-left: 1px solid rgba(15, 23, 42, 0.1);
+    font-size: 0.73rem;
     font-weight: 600;
+    letter-spacing: 0.01em;
+    color: #64748b;
     white-space: nowrap;
   }
 
-  .network-status.online {
-    background: rgba(34, 197, 94, 0.1);
-    color: #15803d;
-    border: 1px solid rgba(34, 197, 94, 0.3);
-  }
-
-  .network-status.offline {
-    background: rgba(245, 158, 11, 0.1);
-    color: #92400e;
-    border: 1px solid rgba(245, 158, 11, 0.3);
-    animation: pulse-caution 2s ease-in-out infinite;
-  }
-
-  :global(.dark-mode .network-status.online) {
-    background: rgba(34, 197, 94, 0.15);
-    color: #4ade80;
-  }
-
-  :global(.dark-mode .network-status.offline) {
-    background: rgba(245, 158, 11, 0.15);
-    color: #fcd34d;
-  }
-
-  @keyframes pulse-caution {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
-  }
-
-  .data-freshness {
+  .status-summary-item {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
-    padding: 0.3rem 0.5rem;
-    background: rgba(59, 130, 246, 0.08);
-    color: #1e40af;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    font-weight: 500;
+    min-height: 1.5rem;
+    padding: 0.1rem 0.42rem;
+    border-radius: 999px;
+    background: rgba(241, 245, 249, 0.95);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    color: #334155;
   }
 
-  :global(.dark-mode .data-freshness) {
-    background: rgba(59, 130, 246, 0.15);
-    color: #93c5fd;
+  .status-summary-sep {
+    color: #94a3b8;
+    font-weight: 700;
+  }
+
+  :global(.dark-mode .status-summary) {
+    border-left-color: rgba(148, 163, 184, 0.18);
+    color: #cbd5e1;
+  }
+
+  :global(.dark-mode .status-summary-item) {
+    background: rgba(30, 41, 59, 0.9);
+    border-color: rgba(148, 163, 184, 0.16);
+    color: #e2e8f0;
+  }
+
+  :global(.dark-mode .status-summary-sep) {
+    color: #94a3b8;
   }
 
   .mission-strip {
@@ -3296,15 +3301,13 @@
       padding: 0.38rem 0.58rem;
     }
 
-    .status-text {
-      max-width: 100%;
-      white-space: normal;
-      font-size: 0.74rem;
-      line-height: 1.25;
+    .status-summary {
+      gap: 0.28rem;
     }
 
-    .vehicle-count {
-      padding-left: 0.35rem;
+    .status-summary-item[data-summary='freshness'],
+    .status-summary-sep[data-separator='freshness'] {
+      display: none;
     }
 
     .mission-strip {

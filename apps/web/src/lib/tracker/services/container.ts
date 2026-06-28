@@ -17,6 +17,7 @@ import type { ModeDetector, RouteStyleProvider, ModeServiceConfig } from './mode
 import { MBTAModeDetector, MBTARouteStyleProvider } from './mode-service';
 import type { StopEnrichmentService } from './enrichers';
 import { createDefaultStopEnrichmentService } from './enrichers';
+import { resolveRealtimeSocketUrl } from '../realtime-url';
 
 export type TransportType = 'websocket' | 'sse' | 'polling';
 
@@ -200,19 +201,7 @@ export class DefaultServiceContainer implements ServiceContainer {
   }
 
   private getDefaultTransportUrl(): string {
-    if (typeof window === 'undefined') {
-      return 'ws://localhost:8080';
-    }
-
-    const host = window.location.hostname;
-    if (host === 'localhost' || host === '127.0.0.1') {
-      return `ws://${host}:8080`;
-    }
-
-    // Production: use same origin
-    const relative = new URL('/ws', window.location.href);
-    relative.protocol = relative.protocol === 'https:' ? 'wss:' : 'ws:';
-    return relative.toString();
+    return resolveRealtimeSocketUrl(null);
   }
 }
 
