@@ -1238,6 +1238,7 @@
     flex: 1;
     position: relative;
     z-index: 1;
+    justify-content: center;
   }
   .alert-badge {
     display: inline-flex;
@@ -1447,6 +1448,7 @@
     gap: 1rem;
     position: relative;
     z-index: 1;
+    width: min(100%, 72rem);
   }
 
   .search-view {
@@ -2043,6 +2045,8 @@
       flex: 1;
       display: flex;
       flex-direction: column;
+      padding-left: 1.75rem;
+      padding-right: 1.75rem;
     }
 
   }
@@ -2053,6 +2057,8 @@
       grid-template-columns: auto minmax(0, 1fr) auto;
       align-items: center;
       gap: 0.75rem;
+      padding-left: 1.75rem;
+      padding-right: 1.75rem;
     }
 
     .main-nav {
