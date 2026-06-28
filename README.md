@@ -48,9 +48,9 @@ Core patterns in use:
 - Dependency injection through a central `ServiceContainer`.
 - Composable stop enrichment via pluggable enrichers.
 
-See [ARCHITECTURE.md](/Users/rraviku2/aarti/mbta-tracker/ARCHITECTURE.md) for the detailed module breakdown and design rationale.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the detailed module breakdown and design rationale.
 
-Current implementation notes and the compact project status live in [`doc/STATUS.md`](/Users/rraviku2/aarti/mbta-tracker/doc/STATUS.md), with the start-here guide in [`doc/IMPLEMENTATION_START_HERE.md`](/Users/rraviku2/aarti/mbta-tracker/doc/IMPLEMENTATION_START_HERE.md).
+Current implementation notes and the compact project status live in [`doc/STATUS.md`](doc/STATUS.md), with the start-here guide in [`doc/IMPLEMENTATION_START_HERE.md`](doc/IMPLEMENTATION_START_HERE.md).
 
 ## Repo Layout
 
@@ -409,4 +409,4 @@ When adding or changing tracker behavior:
 - Add or update Vitest coverage for new service behavior and extracted components.
 - Run `npm --workspace apps/web test` and `npm --workspace apps/web run check` before finalizing changes.
 
-For larger architectural work, review [ARCHITECTURE.md](/Users/rraviku2/aarti/mbta-tracker/ARCHITECTURE.md) first so new code follows the established patterns.
+For larger architectural work, review [ARCHITECTURE.md](ARCHITECTURE.md) first so new code follows the established patterns.
