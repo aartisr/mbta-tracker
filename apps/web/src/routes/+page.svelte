@@ -1450,14 +1450,13 @@
   }
 
   .search-view {
-    @apply space-y-3;
+    @apply space-y-3 mx-auto w-full;
+    max-width: 72rem;
     animation: fade-up 300ms var(--ease-premium);
   }
 
   .search-container {
-    @apply sticky top-24 z-30 py-3.5 px-4 rounded-[1.35rem] border;
-    margin-left: 0;
-    margin-right: 0;
+    @apply sticky top-24 z-30 py-3.5 px-4 rounded-[1.35rem] border mx-auto;
     width: 100%;
     background: rgba(255, 255, 255, 0.93);
     border-color: var(--border-soft);
@@ -1617,6 +1616,18 @@
   .results-grid {
     @apply grid gap-3;
     grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  }
+
+  .results-grid,
+  .empty-results,
+  .search-status,
+  .search-error,
+  .search-info,
+  .starter-inline,
+  .search-guidance {
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
   }
 
   .result-card {
