@@ -28,7 +28,7 @@ export interface RealtimeTransport {
   /**
    * Register event listener
    */
-  on(event: 'data' | 'error' | 'close', handler: (payload: any) => void): () => void;
+  on(event: 'open' | 'data' | 'error' | 'close', handler: (payload: any) => void): () => void;
 
   /**
    * Get current connection status
@@ -68,7 +68,7 @@ export abstract class BaseTransport implements RealtimeTransport {
   abstract connect(): Promise<void>;
   abstract disconnect(): void;
 
-  on(event: 'data' | 'error' | 'close', handler: (payload: any) => void): () => void {
+  on(event: 'open' | 'data' | 'error' | 'close', handler: (payload: any) => void): () => void {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set());
     }
@@ -139,6 +139,7 @@ export class WebSocketTransport extends BaseTransport {
 
       this.socket.onopen = () => {
         this.setStatus('open');
+        this.emit('open', undefined);
       };
 
       this.socket.onmessage = (event) => {
@@ -245,6 +246,7 @@ export class SSETransport extends BaseTransport {
 
       this.eventSource.onopen = () => {
         this.setStatus('open');
+        this.emit('open', undefined);
       };
 
       this.eventSource.onmessage = (event) => {

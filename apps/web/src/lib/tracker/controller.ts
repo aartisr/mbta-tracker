@@ -157,8 +157,7 @@ export function createTrackerController(config: TrackerWidgetConfig, container?:
   }
 
   // Set up transport event listeners
-  transport.on('data', (message) => {
-    // Connection successful - data received
+  transport.on('open', () => {
     reconnectAttempts = 0;
     pushConnection({ status: 'open', retryInSeconds: 0, lastOpenedAt: Date.now(), lastError: null });
     if (reconnectTick) {
@@ -169,6 +168,11 @@ export function createTrackerController(config: TrackerWidgetConfig, container?:
       clearTimeout(reconnectTimer);
       reconnectTimer = null;
     }
+  });
+
+  transport.on('data', (message) => {
+    // Connection successful - data received
+    reconnectAttempts = 0;
 
     try {
       const nextVehicles = parseVehicleList(message.vehicles || message);
