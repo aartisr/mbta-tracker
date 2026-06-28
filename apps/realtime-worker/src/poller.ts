@@ -1,7 +1,7 @@
 import type { FeedPoller, Vehicle } from '@mbta/transit-core';
 import { diffVehicles } from '@mbta/transit-core';
 
-export const MBTA_JSON_FEED = 'https://api-v3.mbta.com/vehicles?include=trip,stops,route';
+export const MBTA_JSON_FEED = 'https://api-v3.mbta.com/vehicles?include=trip,route';
 
 export type MbtaVehiclesResponse = {
   data?: Array<{

@@ -70,6 +70,8 @@ export class VehicleHub extends DurableObject {
           }
         }
       }
+    } catch (error) {
+      console.error('[mbta-realtime-worker] poll failed', error);
     } finally {
       if (this.ctx.getWebSockets().length > 0) {
         await this.ctx.storage.setAlarm(Date.now() + POLL_MS);
@@ -89,4 +91,3 @@ export class VehicleHub extends DurableObject {
     }
   }
 }
-
