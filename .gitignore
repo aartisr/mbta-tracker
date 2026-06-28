@@ -13,6 +13,11 @@ coverage/
 **/.vercel/
 .netlify/
 **/.netlify/
+.wrangler/
+**/.wrangler/
+dist-widget/
+**/dist-widget/
+release/widget/
 .env
 .env.*
 *.log
