@@ -760,6 +760,10 @@
 		}
 	}
 
+	.suggestion-item:last-child {
+		border-bottom: none;
+	}
+
 	.suggestion-type {
 		@apply inline-block px-2 py-1 text-xs font-semibold rounded flex-shrink-0;
 		background: #dbeafe;
@@ -889,7 +893,7 @@
 	}
 
 	.history-list {
-		@apply space-y-1;
+		@apply grid gap-1;
 	}
 
 	.history-item {

@@ -580,7 +580,7 @@
   }
 
   .leaderboard-row {
-    @apply grid px-3 py-2 text-xs;
+    @apply grid px-3 py-2.5 text-xs;
     grid-template-columns: 3rem 1fr auto;
     gap: 0.5rem;
     color: #4c1d95;
@@ -631,8 +631,11 @@
     @apply rounded-2xl border p-3;
     border-color: #e2e8f0;
     background:
+      radial-gradient(circle at top right, rgba(255, 255, 255, 0.88), transparent 28%),
       linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
-    box-shadow: 0 12px 22px rgba(15, 23, 42, 0.05);
+    box-shadow:
+      0 12px 22px rgba(15, 23, 42, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.76);
   }
 
   .forum-item strong {
