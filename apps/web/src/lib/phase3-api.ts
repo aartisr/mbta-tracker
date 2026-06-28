@@ -4,9 +4,11 @@ import type {
   MyCommutesResponse,
   PrivacyDashboardResponse
 } from '$lib/types';
+import { apiUrl } from '$lib/api';
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, init);
+  const resolvedUrl = url.startsWith('/api/') ? apiUrl(url) : url;
+  const response = await fetch(resolvedUrl, init);
   if (!response.ok) {
     throw new Error(`Request failed with ${response.status}`);
   }
@@ -16,11 +18,10 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 export async function fetchPhase3Snapshot(
   sessionId: string
 ): Promise<{ commutes: MyCommutesResponse; privacy: PrivacyDashboardResponse }> {
-  const base = window.location.origin;
-  const commutesUrl = new URL('/api/my-commutes', base);
+  const commutesUrl = new URL(apiUrl('/api/my-commutes'));
   commutesUrl.searchParams.set('session_id', sessionId);
 
-  const privacyUrl = new URL('/api/privacy-dashboard', base);
+  const privacyUrl = new URL(apiUrl('/api/privacy-dashboard'));
   privacyUrl.searchParams.set('session_id', sessionId);
 
   const [commutes, privacy] = await Promise.all([
@@ -36,7 +37,7 @@ export async function fetchCommuteRecommendation(
   fromStopId: string,
   toStopId: string
 ): Promise<CommuteRecommendationResponse> {
-  const url = new URL('/api/commute-recommendation', window.location.origin);
+  const url = new URL(apiUrl('/api/commute-recommendation'));
   url.searchParams.set('from', fromStopId);
   url.searchParams.set('to', toStopId);
   url.searchParams.set('session_id', sessionId);
@@ -48,7 +49,7 @@ export async function fetchEmergencyReroute(
   toStopId: string,
   disruptedRoute: string
 ): Promise<EmergencyRerouteResponse> {
-  const url = new URL('/api/emergency-reroute', window.location.origin);
+  const url = new URL(apiUrl('/api/emergency-reroute'));
   url.searchParams.set('from', fromStopId);
   url.searchParams.set('to', toStopId);
   url.searchParams.set('disrupted_route', disruptedRoute || 'service disruption');
@@ -60,7 +61,7 @@ export async function submitPrivacyConsent(
   optedIn: boolean,
   anonymizeAfterDays: number
 ): Promise<void> {
-  await fetchJson('/api/privacy-consent', {
+  await fetchJson(apiUrl('/api/privacy-consent'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

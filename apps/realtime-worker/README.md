@@ -17,43 +17,20 @@ This worker is configured in [`wrangler.toml`](./wrangler.toml) with:
 - `compatibility_date = "2026-06-24"`
 - Durable Object binding `VEHICLE_HUB`
 
+Wrangler currently requires Node.js 22 or newer for `dev`, `deploy`, and `deploy:dry-run`. If those commands fail locally, switch your shell to Node 22 first.
+
 If you use Wrangler type generation for the web app or worker configs, keep any `worker-configuration.d.ts` file in the Wrangler-generated format. Cloudflare's build checks reject hand-written placeholders.
 
 ## Deploy
 
-From the repo root:
+Use the single repo checklist in [`../../doc/DEPLOYMENT_ZERO_BUDGET.md`](../../doc/DEPLOYMENT_ZERO_BUDGET.md).
 
-```bash
-cd apps/realtime-worker
-npm install
-npm run deploy
-```
+That checklist covers:
 
-Or from the repo root:
-
-```bash
-npm run deploy:cf:worker
-```
-
-Dry-run preflight:
-
-```bash
-npm run deploy:dry-run
-```
-
-## Verify
-
-After deploy, confirm the worker responds:
-
-```bash
-curl https://<worker-name>.<subdomain>.workers.dev/health
-```
-
-The Pages app should use:
-
-```text
-PUBLIC_WS_URL=wss://<worker-name>.<subdomain>.workers.dev/ws
-```
+- `npm run deploy:cf:worker:dry-run`
+- `npm run deploy:cf:worker`
+- the worker health endpoint
+- the `PUBLIC_WS_URL` value for Pages
 
 ## Troubleshooting
 

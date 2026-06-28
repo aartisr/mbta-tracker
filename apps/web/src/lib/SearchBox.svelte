@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import type { SearchResult } from '$lib/types';
+	import { apiUrl } from '$lib/api';
 
 	// Props
 	export let onSearch: (query: string) => void = () => {};
@@ -116,7 +117,7 @@
 		isLoading = true;
 		try {
 			const response = await fetch(
-				`/api/search/autocomplete?q=${encodeURIComponent(query)}&limit=10`
+				apiUrl(`/api/search/autocomplete?q=${encodeURIComponent(query)}&limit=10`)
 			);
 			const data = await response.json();
 			suggestions = data.suggestions || [];

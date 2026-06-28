@@ -6,7 +6,7 @@ This folder now keeps only the current source-of-truth docs for the project.
 
 1. [Current Status](STATUS.md)
 2. [MBTA Widget Embed Guide](mbta-widget-embed.md)
-3. [Zero Budget Deployment Guide](DEPLOYMENT_ZERO_BUDGET.md)
+3. [Zero Budget Deployment Checklist](DEPLOYMENT_ZERO_BUDGET.md)
 
 ## When To Open Each Doc
 

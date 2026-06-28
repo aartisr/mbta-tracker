@@ -3,6 +3,14 @@
  * Mirrors server types with some additions for UI state
  */
 
+export type {
+	Vehicle,
+	VehicleUpdate,
+	RouteStopInfo,
+	RouteStopsResponse,
+	VehicleInfoResponse
+} from '../../../../packages/transit-core/src/types';
+
 export type QueryType = 'route' | 'stop' | 'address' | 'vehicle' | 'landmark' | 'unknown';
 
 export interface SearchQuery {

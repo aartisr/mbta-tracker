@@ -1,5 +1,5 @@
 import Supercluster from 'supercluster';
-import type { VehicleUpdate } from './types';
+import type { TrackerVehicle } from './types';
 
 export interface ClusterProperties {
   cluster: true;
@@ -14,7 +14,7 @@ export interface ClusterProperties {
 export interface PointProperties {
   cluster: false;
   vehicle_id: string;
-  vehicle: VehicleUpdate;
+  vehicle: TrackerVehicle;
   mode: string;
 }
 
@@ -44,21 +44,15 @@ export function initCluster() {
     map: () => ({
       cluster: false as const,
       vehicle_id: '',
-      vehicle: {} as VehicleUpdate,
+      vehicle: {} as TrackerVehicle,
       mode: ''
     }),
     reduce: (acc, props) => {
-      // Aggregate cluster properties
-      const mode = props.vehicle?.current_status?.length > 0 
-        ? props.vehicle.vehicle?.label?.split(' ')[0] || 'unknown'
-        : 'unknown';
-      
+      const mode = props.vehicle.mode || 'unknown';
       acc.vehicle_ids = acc.vehicle_ids || [];
       acc.vehicle_ids.push(props.vehicle_id);
-      
       acc.modes = acc.modes || new Set();
       acc.modes.add(mode);
-      
       return acc;
     }
   });
@@ -69,12 +63,12 @@ export function initCluster() {
  */
 export function loadVehiclesIntoCluster(
   cluster: Supercluster<PointProperties, ClusterProperties>,
-  vehicles: Map<string, VehicleUpdate>
+  vehicles: Map<string, TrackerVehicle>
 ) {
   const points = Array.from(vehicles.entries()).map(([id, vehicle]) => {
-    const lat = vehicle.latitude || 0;
-    const lon = vehicle.longitude || 0;
-    const mode = vehicle.vehicle?.label?.split(' ')[0] || 'unknown';
+    const lat = vehicle.lat || 0;
+    const lon = vehicle.lon || 0;
+    const mode = vehicle.mode || 'unknown';
 
     return {
       geometry: { coordinates: [lon, lat] as [number, number] },

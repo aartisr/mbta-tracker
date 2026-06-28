@@ -259,44 +259,16 @@ The web client is wired to `ws://127.0.0.1:8787/ws` automatically in this mode.
 
 ## Cloudflare Deployment
 
-### 1. Deploy realtime worker
+Use the single source of truth in [`doc/DEPLOYMENT_ZERO_BUDGET.md`](doc/DEPLOYMENT_ZERO_BUDGET.md).
 
-See [`apps/realtime-worker/README.md`](apps/realtime-worker/README.md) for the worker-specific deploy flow and runtime settings.
+Short version:
 
-Quick deploy:
+- Deploy `apps/realtime-worker` as the websocket backend.
+- Deploy `apps/web` to Cloudflare Pages.
+- Set `PUBLIC_WS_URL` to the Worker websocket URL.
+- Add the `MBTA_API_STATE` KV binding in Pages.
 
-```bash
-npm run deploy:cf:worker
-```
-
-Dry-run preflight:
-
-```bash
-npm run deploy:cf:worker:dry-run
-```
-
-Expected endpoint pattern:
-
-- `https://<worker-name>.<subdomain>.workers.dev/ws`
-
-### 2. Deploy web app to Cloudflare Pages
-
-Create a Pages project pointing at this repo with:
-
-- Root directory: `apps/web`
-- Build command: `npm run pages:build`
-- Output directory: `.svelte-kit/cloudflare`
-- Node.js version: `22`
-- Environment variable:
-  - `PUBLIC_WS_URL=wss://<worker-name>.<subdomain>.workers.dev/ws`
-
-Recommended Pages settings for this repo:
-
-- Framework preset: `SvelteKit`
-- Build command timeout: leave default unless Cloudflare prompts otherwise
-- Cache: clear once after removing any old private registry settings
-
-If you prefer the repo root scripts, `npm run deploy:cf:pages` runs the same build from the workspace root.
+The Pages app serves the public API routes on the same origin, so `/api/...` works without a separate API host.
 
 ## Notes
 

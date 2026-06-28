@@ -1,3 +1,5 @@
+import { apiUrl } from '$lib/api';
+
 export type DataSource = 'network' | 'cache';
 
 interface CacheEnvelope<T> {
@@ -68,9 +70,10 @@ export async function fetchJsonWithOfflineFallback<T>(
   const now = Date.now();
   const { init, cacheTtlMs = 0 } = options;
   const cached = readCache<T>(cacheKey);
+  const resolvedUrl = url.startsWith('/api/') ? apiUrl(url) : url;
 
   try {
-    const response = await fetch(url, init);
+    const response = await fetch(resolvedUrl, init);
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }

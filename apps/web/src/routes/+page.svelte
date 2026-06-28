@@ -1,15 +1,13 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import { browser } from '$app/environment';
-  import TrackerWidget from '$lib/tracker/TrackerWidget.svelte';
   import { DEFAULT_TRACKER_CONFIG } from '$lib/tracker';
   import SearchBox from '$lib/SearchBox.svelte';
   import StopView from '$lib/StopView.svelte';
   import RouteView from '$lib/RouteView.svelte';
   import VehicleView from '$lib/VehicleView.svelte';
   import AlertCenter from '$lib/AlertCenter.svelte';
-  import Phase3Hub from '$lib/Phase3Hub.svelte';
-  import Phase4Hub from '$lib/Phase4Hub.svelte';
+  import { apiFetch } from '$lib/api';
   import type {
     AddressResult,
     RouteResult,
@@ -24,9 +22,6 @@
     canonicalUrl: string;
     shareImageUrl: string;
   };
-
-  let launchMode: 'loading' | 'legacy' | 'search' = 'search';
-  let launchError: string | null = null;
 
   let currentView: 'search' | 'stop' | 'route' | 'vehicle' | 'alerts' = 'search';
   let selectedStop: StopResult | null = null;
@@ -45,6 +40,9 @@
   let settingsButtonEl: HTMLButtonElement | null = null;
   let showPhase3Hub = false;
   let showPhase4Hub = false;
+  let TrackerWidgetComponent: typeof import('$lib/tracker/TrackerWidget.svelte').default | null = null;
+  let Phase3HubComponent: typeof import('$lib/Phase3Hub.svelte').default | null = null;
+  let Phase4HubComponent: typeof import('$lib/Phase4Hub.svelte').default | null = null;
   let routeInfoMessage: string | null = null;
   let highlightedAddress: AddressResult | null = null;
   let homeMode: 'list' | 'map' = 'list';
@@ -210,7 +208,7 @@
 
   async function track(event: string, meta: Record<string, unknown> = {}) {
     try {
-      await fetch('/api/telemetry', {
+      await apiFetch('/api/telemetry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -228,6 +226,9 @@
   onMount(() => {
     sessionId = getOrCreateSessionId();
     void track('home_view_loaded', { route: 'search' });
+    void import('$lib/tracker/TrackerWidget.svelte').then((mod) => {
+      TrackerWidgetComponent = mod.default;
+    });
   });
 
   onMount(() => {
@@ -286,6 +287,18 @@
     };
   });
 
+  $: if (showPhase3Hub && !Phase3HubComponent) {
+    void import('$lib/Phase3Hub.svelte').then((mod) => {
+      Phase3HubComponent = mod.default;
+    });
+  }
+
+  $: if (showPhase4Hub && !Phase4HubComponent) {
+    void import('$lib/Phase4Hub.svelte').then((mod) => {
+      Phase4HubComponent = mod.default;
+    });
+  }
+
   function updateBoardingLegendCollapse() {
     if (!browser || !boardingLegendEl) {
       isBoardingLegendCollapsed = false;
@@ -336,7 +349,7 @@
     routeInfoMessage = null;
 
     try {
-      const response = await fetch('/api/search', {
+      const response = await apiFetch('/api/search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -587,7 +600,7 @@
       const insightPairs = await Promise.all(
         stops.map(async (stop) => {
           try {
-            const response = await fetch(`/api/stop/${encodeURIComponent(stop.stop_id)}/arrivals`);
+            const response = await apiFetch(`/api/stop/${encodeURIComponent(stop.stop_id)}/arrivals`);
             if (!response.ok) {
               return [stop.stop_id, { routeNumbers: [], nextEtaMin: null }] as const;
             }
@@ -704,24 +717,6 @@
   <link rel="canonical" href={data.canonicalUrl} />
 </svelte:head>
 
-{#if launchMode === 'loading'}
-  <div class="launch-loading" role="status" aria-live="polite">
-    <p>Preparing MBTA experience…</p>
-  </div>
-{:else if launchMode === 'legacy'}
-  <div class="legacy-shell">
-    <div class="legacy-banner" role="region" aria-label="Launch fallback mode">
-      <strong>Legacy mode active</strong>
-      <span>
-        Serving stable tracker while rollout is warming up.
-        {#if launchError}
-          ({launchError})
-        {/if}
-      </span>
-    </div>
-    <TrackerWidget config={data.config} />
-  </div>
-{:else}
   <div
     class="page-container"
     class:high-contrast={highContrastEnabled}
@@ -905,11 +900,15 @@
         {/if}
 
         {#if showPhase3Hub}
-          <Phase3Hub sessionId={sessionId} onTrack={track} />
+          {#if Phase3HubComponent}
+            <svelte:component this={Phase3HubComponent} sessionId={sessionId} onTrack={track} />
+          {/if}
         {/if}
 
         {#if showPhase4Hub}
-          <Phase4Hub sessionId={sessionId} onTrack={track} />
+          {#if Phase4HubComponent}
+            <svelte:component this={Phase4HubComponent} sessionId={sessionId} onTrack={track} />
+          {/if}
         {/if}
 
         {#if searchResults.length > 0}
@@ -1020,7 +1019,11 @@
               </div>
               <div class="map-mode-widget" aria-label="Live map with route and alert context">
                 {#key mapViewKey}
-                  <TrackerWidget config={homeMapConfig} />
+                  {#if TrackerWidgetComponent}
+                    <svelte:component this={TrackerWidgetComponent} config={homeMapConfig} />
+                  {:else}
+                    <div class="map-mode-loading" role="status" aria-live="polite">Loading map tools…</div>
+                  {/if}
                 {/key}
               </div>
             </section>
@@ -1175,7 +1178,6 @@
     </div>
   </footer>
 </div>
-{/if}
 
 <style lang="postcss">
   :global(:root) {
@@ -1203,31 +1205,6 @@
       linear-gradient(180deg, #f7f9fd 0%, #eef3f9 100%);
     color: var(--text-body);
     font-family: 'Manrope', 'Segoe UI', sans-serif;
-  }
-
-  .launch-loading {
-    @apply min-h-screen flex flex-col gap-2 items-center justify-center text-base;
-    color: var(--text-body);
-  }
-
-  .launch-loading p {
-    @apply m-0 font-medium;
-  }
-
-  .legacy-shell {
-    @apply min-h-screen;
-    background: var(--bg-base);
-  }
-
-  .legacy-banner {
-    @apply p-3 text-sm border-b flex flex-col gap-1;
-    background: #fff7ed;
-    border-color: #fed7aa;
-    color: #9a3412;
-  }
-
-  .legacy-banner strong {
-    @apply text-xs uppercase tracking-wide;
   }
 
   .page-container {

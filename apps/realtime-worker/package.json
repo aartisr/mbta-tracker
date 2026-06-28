@@ -2,10 +2,13 @@
   "name": "mbta-realtime-worker",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "deploy:dry-run": "wrangler deploy --dry-run",
+    "dev": "node ./scripts/require-node-22.mjs && wrangler dev",
+    "deploy": "node ./scripts/require-node-22.mjs && wrangler deploy",
+    "deploy:dry-run": "node ./scripts/require-node-22.mjs && wrangler deploy --dry-run",
     "test": "vitest run"
   },
   "dependencies": {

@@ -88,7 +88,10 @@ describe('StopView', () => {
 	it('calls fetch with the correct stop arrivals URL', async () => {
 		render(StopView, { stopId: 'place-dwnxg', stopName: 'Downtown Crossing' });
 		await waitFor(() => expect(mockFetch).toHaveBeenCalled());
-		expect(mockFetch).toHaveBeenCalledWith('/api/stop/place-dwnxg/arrivals', undefined);
+		expect(mockFetch).toHaveBeenCalledWith(
+			expect.stringContaining('/api/stop/place-dwnxg/arrivals'),
+			undefined
+		);
 	});
 
 	it('has a Refresh button', async () => {

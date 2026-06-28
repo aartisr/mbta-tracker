@@ -16,6 +16,7 @@
 		BoardingSuggestionResponse,
 		BoardingSuggestionOption
 	} from '$lib/types';
+	import { apiFetch } from '$lib/api';
 	import { fetchJsonWithOfflineFallback, formatAgeMinutes } from '$lib/data-resilience';
 
 	export let stopId: string;
@@ -26,6 +27,7 @@
 	let error: string | null = null;
 	let lastUpdated = Date.now();
 	let refreshInterval: NodeJS.Timeout;
+	let isMounted = false;
 	let selectedArrival: ArrivalForecast | null = null;
 	let isOffline = false;
 	let staleAgeMs = 0;
@@ -70,7 +72,7 @@
 
 	async function fetchCrowdingForecast() {
 		try {
-			const response = await fetch(`/api/stop/${stopId}/crowding-forecast`);
+			const response = await apiFetch(`/api/stop/${stopId}/crowding-forecast`);
 			if (!response.ok) {
 				throw new Error(`HTTP ${response.status}`);
 			}
@@ -82,7 +84,8 @@
 		}
 	}
 
-	onMount(async () => {
+	onMount(() => {
+		isMounted = true;
 		const handleOnline = () => {
 			isOffline = false;
 		};
@@ -97,13 +100,19 @@
 			window.addEventListener('offline', handleOffline);
 		}
 
-		await Promise.all([fetchArrivals(), fetchCrowdingForecast()]);
-		// Refresh every 30 seconds
-		refreshInterval = setInterval(() => {
-			void fetchArrivals();
-			void fetchCrowdingForecast();
-		}, 30000);
+		void Promise.all([fetchArrivals(), fetchCrowdingForecast()]).then(() => {
+			if (!isMounted) {
+				return;
+			}
+			// Refresh every 30 seconds
+			refreshInterval = setInterval(() => {
+				void fetchArrivals();
+				void fetchCrowdingForecast();
+			}, 30000);
+		});
+
 		return () => {
+			isMounted = false;
 			clearInterval(refreshInterval);
 			if (typeof window !== 'undefined') {
 				window.removeEventListener('online', handleOnline);
@@ -164,7 +173,7 @@
 				preference: suggestionPreference
 			});
 
-			const response = await fetch(`/api/boarding-suggestion?${params.toString()}`);
+			const response = await apiFetch(`/api/boarding-suggestion?${params.toString()}`);
 			if (!response.ok) {
 				throw new Error(`HTTP ${response.status}`);
 			}
@@ -231,7 +240,7 @@
 	 * Extract the most common headsigns from a group of arrivals.
 	 * Returns up to 2 unique destinations, sorted by frequency.
 	 */
-	function getDestinations(group: typeof arrivals.inbound): string[] {
+	function getDestinations(group: ArrivalForecast[] | undefined): string[] {
 		if (!group || group.length === 0) return [];
 		const freq = new Map<string, number>();
 		for (const a of group) {

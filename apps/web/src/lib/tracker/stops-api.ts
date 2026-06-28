@@ -79,7 +79,7 @@ export async function getAllStops(): Promise<MBTAStop[]> {
 
   try {
     while (nextUrl) {
-      const response = await fetch(nextUrl, { headers: mbtaHeaders() });
+      const response: Response = await fetch(nextUrl, { headers: mbtaHeaders() });
 
       if (!response.ok) {
         if (response.status === 429) {
@@ -88,18 +88,21 @@ export async function getAllStops(): Promise<MBTAStop[]> {
         throw new Error(`MBTA stops fetch failed: ${response.status}`);
       }
 
-      const data = await response.json();
-      const fetchedStops = (data.data || []) as Array<{
-        id: string;
-        attributes: {
-          name: string;
-          latitude: number;
-          longitude: number;
-          wheelchair_boarding?: 0 | 1 | 2; // 0=unknown, 1=yes, 2=no
-          platform_code?: string;
-          parent_station?: string;
-        };
-      }>;
+      const data: {
+        data?: Array<{
+          id: string;
+          attributes: {
+            name: string;
+            latitude: number;
+            longitude: number;
+            wheelchair_boarding?: 0 | 1 | 2;
+            platform_code?: string;
+            parent_station?: string;
+          };
+        }>;
+        links?: { next?: string | null };
+      } = await response.json();
+      const fetchedStops = data.data || [];
 
       if (fetchedStops.length === 0) {
         break;

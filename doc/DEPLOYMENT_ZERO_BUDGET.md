@@ -1,18 +1,19 @@
-# Zero Budget Deployment Guide
+# Zero Budget Deployment Checklist
 
-This guide shows the free deployment path for the repo with no paid services.
+This is the single deployment checklist for the repo. It is the free Cloudflare path and the one to follow end to end.
 
-## Recommended Free Stack
+## What This Covers
 
-- Frontend: Cloudflare Pages
-- Realtime backend: Cloudflare Workers
-- Widget/embed assets: Cloudflare-hosted release artifacts or skip at first
+- `apps/web` on Cloudflare Pages
+- `apps/realtime-worker` as the realtime websocket backend
+- Same-origin public API routes from the Pages app
+- Free-tier Cloudflare-only deployment
 
 ## What You Need
 
 - A free Cloudflare account
 - A GitHub repo connected to Cloudflare Pages
-- Cloudflare Wrangler auth for Worker deployment
+- Wrangler login on your local machine for the Worker deploy
 - Your MBTA Tracker repo checked out locally
 
 ## What You Do Not Need
@@ -22,121 +23,68 @@ This guide shows the free deployment path for the repo with no paid services.
 - Paid database
 - Paid CDN
 
-## Step 1: Confirm the repository layout
+## Checklist
 
-The repo is already split into:
+1. Confirm the repo layout.
+   - `apps/web` is the SvelteKit frontend and public API host.
+   - `apps/realtime-worker` is the realtime websocket backend.
+   - `apps/server` is local-development only.
 
-- `apps/web` for the SvelteKit frontend
-- `apps/realtime-worker` for the Cloudflare Worker backend
-- `apps/server` for local development only
+2. Deploy the realtime worker.
+   - From the repo root, run `npm run deploy:cf:worker:dry-run` first.
+   - If that succeeds, run `npm run deploy:cf:worker`.
+   - The deployed websocket URL will look like `wss://<worker-name>.<subdomain>.workers.dev/ws`.
+   - Save that URL for the Pages app.
 
-For zero-budget deployment, use Cloudflare for the public app and worker. Keep `apps/server` local-only.
+3. Create or edit the Cloudflare Pages project.
+   - Connect the GitHub repo.
+   - Set the root directory to `apps/web`.
+   - Use the `SvelteKit` framework preset.
+   - Set the build command to `npm run pages:build`.
+   - Set the output directory to `.svelte-kit/cloudflare`.
+   - Set Node.js to `22`.
+   - Leave the deploy command at the Cloudflare default unless your account UI requires a custom value.
 
-## Step 2: Deploy the realtime worker
+4. Set the Pages environment variables.
+   - `PUBLIC_WS_URL=wss://<worker-name>.<subdomain>.workers.dev/ws`
+   - `PUBLIC_API_BASE_URL` is optional and only needed if you deliberately move the API off the Pages origin.
 
-The web app needs a public websocket endpoint.
+5. Add the Pages KV binding.
+   - Add a KV namespace binding named `MBTA_API_STATE`.
+   - This stores commutes, privacy settings, missions, feedback, and community posts.
 
-From the repo root:
+6. Deploy the Pages site.
+   - Push to GitHub.
+   - Let Cloudflare build and deploy automatically.
+   - If you recently changed package installs or registry settings, clear the Pages build cache once and retry.
 
-```bash
-npm run deploy:cf:worker:dry-run
-```
+7. Verify the live app.
+   - Open the Pages URL.
+   - Confirm the homepage loads.
+   - Confirm search works.
+   - Confirm realtime status connects.
+   - Confirm `/api/...` routes work on the same origin.
 
-If that looks good, deploy for real:
+8. Verify the worker health endpoint.
+   - Open `https://<worker-name>.<subdomain>.workers.dev/health`.
+   - Or run `curl https://<worker-name>.<subdomain>.workers.dev/health`.
 
-```bash
-npm run deploy:cf:worker
-```
+9. Optional: deploy the embeddable widget.
+   - Keep the same worker URL.
+   - Build and host the widget release artifacts if you need external embeds.
 
-When this succeeds, you will get a Worker URL like:
+## Important Notes
 
-```text
-wss://<worker-name>.<subdomain>.workers.dev/ws
-```
+- The Pages app already uses the Cloudflare adapter, so you do not need a separate API host.
+- Do not add a handwritten `worker-configuration.d.ts`; if Wrangler generates one locally, keep that generated format only where Wrangler owns it.
+- If Pages cannot connect to the worker, the first thing to check is `PUBLIC_WS_URL`.
+- If Pages shows stale install behavior, clear the Pages build cache.
+- The free Cloudflare plan is usually enough for a personal or low-traffic deployment, but it does have request and build limits.
 
-Keep that URL handy.
+## Quick Summary
 
-## Step 3: Create the Cloudflare Pages project
-
-In Cloudflare Pages:
-
-1. Click `Create a project`
-2. Connect your GitHub repo
-3. Set the root directory to `apps/web`
-4. Keep the framework preset as `SvelteKit`
-5. Set the build command to `npm run pages:build`
-6. Set the output directory to `.svelte-kit/cloudflare`
-7. Set the Node.js version to `22`
-8. Let Cloudflare handle the output from the SvelteKit adapter
-
-The web app already uses the Cloudflare adapter, so you do not need to change it for this free deployment path.
-
-## Step 4: Set the websocket environment variable
-
-In the Pages project settings, add:
-
-```text
-PUBLIC_WS_URL=wss://<worker-name>.<subdomain>.workers.dev/ws
-```
-
-This tells the frontend where to connect for realtime updates.
-
-## Step 5: Deploy the Pages site
-
-Push your code to GitHub.
-
-Cloudflare Pages should build and deploy automatically.
-
-If you just fixed registry settings or other install problems, clear the Pages cache once before retrying.
-
-When it is live, open the Pages URL and confirm:
-
-- the homepage loads
-- search works
-- realtime status connects
-- vehicles and arrivals appear
-
-## Step 6: Verify the Worker endpoint
-
-Check the worker health endpoint in your browser or with curl:
-
-```bash
-curl https://<worker-name>.<subdomain>.workers.dev/health
-```
-
-You want a healthy response before assuming the frontend is broken.
-
-## Step 7: Optional widget deployment
-
-If you want the embeddable widget to be used on another site:
-
-- keep the same worker URL
-- build the widget release artifacts
-- host them on a free Cloudflare-compatible static location if available
-
-If you do not need external embeds yet, skip this step.
-
-## Common Free-Tier Limits
-
-- Pages builds can be rate-limited on the free plan
-- Workers free tier has request limits
-- Durable Objects on free are more limited than paid plans
-
-For a personal project or low traffic, this is usually enough.
-
-## If Something Fails
-
-- If the frontend cannot connect, confirm `PUBLIC_WS_URL`
-- If the worker fails, redeploy with `npm run deploy:cf:worker`
-- If search or arrivals fail locally, use `npm run dev` in the repo root to debug
-- If Pages still sees old install metadata, clear the Pages build cache and redeploy
-- If Pages complains about `worker-configuration.d.ts`, make sure the file is Wrangler-generated and not a handwritten placeholder
-
-## Summary
-
-The simplest zero-budget path is:
-
-1. Deploy the Cloudflare Worker
-2. Deploy `apps/web` to Cloudflare Pages
-3. Set `PUBLIC_WS_URL`
-4. Verify the app in production
+1. Deploy the realtime worker.
+2. Deploy `apps/web` to Cloudflare Pages.
+3. Set `PUBLIC_WS_URL`.
+4. Add `MBTA_API_STATE`.
+5. Verify the live app and worker health endpoint.

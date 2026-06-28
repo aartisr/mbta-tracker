@@ -7,6 +7,7 @@
 	import { onMount } from 'svelte';
 	import ArrivalCard from './ArrivalCard.svelte';
 	import type { StopArrivals, RouteCrowdingForecastResponse } from './types';
+	import { apiFetch } from '$lib/api';
 	import { fetchJsonWithOfflineFallback, formatAgeMinutes } from '$lib/data-resilience';
 
 	interface RouteStopInfo {
@@ -58,7 +59,7 @@
 			error = null;
 
 			try {
-				const crowdingResponse = await fetch(`/api/route/${routeId}/crowding-forecast`);
+				const crowdingResponse = await apiFetch(`/api/route/${routeId}/crowding-forecast`);
 				if (crowdingResponse.ok) {
 					routeCrowding = await crowdingResponse.json() as RouteCrowdingForecastResponse;
 					routeCrowdingMap = Object.fromEntries(
