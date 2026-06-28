@@ -719,10 +719,13 @@
 	}
 
 	.boarding-card {
-		@apply rounded-xl border px-3 py-2;
-		border-color: rgba(148, 163, 184, 0.22);
-		background: rgba(255, 255, 255, 0.95);
-		box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+		@apply rounded-2xl border px-3 py-2;
+		border-color: rgba(148, 163, 184, 0.18);
+		background:
+			linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.98));
+		box-shadow:
+			0 12px 24px rgba(15, 23, 42, 0.05),
+			inset 0 1px 0 rgba(255, 255, 255, 0.75);
 	}
 
 	.boarding-label {
@@ -811,7 +814,7 @@
 	}
 
 	.arrivals-list {
-		@apply space-y-2;
+		@apply grid gap-2;
 	}
 
 	.no-arrivals {

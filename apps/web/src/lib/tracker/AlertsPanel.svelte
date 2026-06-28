@@ -101,15 +101,20 @@
 
   .alerts-list {
     display: grid;
-    gap: 0.75rem;
+    gap: 0.7rem;
   }
 
   .alert-row {
-    padding: 1rem;
-    border-radius: 1.125rem;
+    padding: 0.95rem 1rem;
+    border-radius: 1.2rem;
     border: 1.5px solid rgba(15, 23, 42, 0.1);
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    background:
+      radial-gradient(circle at top right, rgba(255, 255, 255, 0.85), transparent 28%),
+      linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
     transition: all 0.2s ease;
+    box-shadow:
+      0 12px 24px rgba(15, 23, 42, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.72);
   }
 
   :global(.dark-mode) .alert-row {
@@ -119,7 +124,9 @@
 
   .alert-row:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+    box-shadow:
+      0 16px 28px rgba(15, 23, 42, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.78);
     border-color: rgba(15, 23, 42, 0.2);
   }
 

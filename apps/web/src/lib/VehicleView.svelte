@@ -322,7 +322,12 @@
 	}
 
 	.stops-card {
-		@apply bg-white border border-gray-200 rounded-lg p-4;
+		@apply bg-white border border-gray-200 rounded-2xl p-4;
+		background:
+			linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.96));
+		box-shadow:
+			0 12px 24px rgba(15, 23, 42, 0.05),
+			inset 0 1px 0 rgba(255, 255, 255, 0.75);
 	}
 
 	.stops-title {
@@ -334,15 +339,22 @@
 	}
 
 	.stops-list {
-		@apply space-y-2 mt-3;
+		@apply grid gap-2 mt-3;
 	}
 
 	.stop-row {
-		@apply flex items-center gap-3 p-3 bg-gray-50 rounded-lg;
+		@apply flex items-center gap-3 p-3 rounded-2xl;
+		background:
+			linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
+		border: 1px solid rgba(15, 23, 42, 0.06);
+		box-shadow: 0 10px 20px rgba(15, 23, 42, 0.04);
 	}
 
 	.stop-row.next {
-		@apply bg-blue-50 border border-blue-200;
+		@apply border;
+		background: linear-gradient(180deg, #eff6ff, #dbeafe);
+		border-color: #93c5fd;
+		box-shadow: 0 12px 24px rgba(37, 99, 235, 0.08);
 	}
 
 	.stop-number {

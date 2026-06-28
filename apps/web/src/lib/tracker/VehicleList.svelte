@@ -161,11 +161,15 @@
 <style>
   .panel {
     padding: 1rem 1.1rem;
-    border-radius: 1.25rem;
-    background: rgba(255, 255, 255, 0.9);
+    border-radius: 1.35rem;
+    background:
+      radial-gradient(circle at top right, rgba(219, 234, 254, 0.35), transparent 28%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 251, 255, 0.94));
     border: 1px solid rgba(15, 23, 42, 0.07);
-    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
-    backdrop-filter: blur(12px);
+    box-shadow:
+      0 14px 30px rgba(15, 23, 42, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(14px);
   }
 
   .panel-head {
@@ -225,7 +229,8 @@
     padding: 0.6rem 0.75rem;
     border-radius: 10px;
     border: 1.5px solid rgba(15, 23, 42, 0.07);
-    background: rgba(248, 250, 252, 0.88);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
     color: #0f172a;
     cursor: pointer;
     transition: all 0.15s;
@@ -236,20 +241,26 @@
 
   .vehicle-row:hover {
     border-color: rgba(37, 99, 235, 0.25);
-    background: rgba(239, 246, 255, 0.95);
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+    background: linear-gradient(180deg, rgba(239, 246, 255, 0.98), rgba(224, 242, 254, 0.96));
+    box-shadow:
+      0 14px 24px rgba(37, 99, 235, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.78);
   }
 
   .vehicle-row.active {
     border-color: rgba(37, 99, 235, 0.5);
-    background: rgba(219, 234, 254, 0.95);
-    box-shadow: 0 2px 12px rgba(37, 99, 235, 0.12);
+    background: linear-gradient(180deg, rgba(219, 234, 254, 0.98), rgba(191, 219, 254, 0.94));
+    box-shadow:
+      0 16px 26px rgba(37, 99, 235, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.78);
   }
 
   .vehicle-row.previewed {
     border-color: rgba(14, 165, 233, 0.55);
-    background: rgba(224, 242, 254, 0.98);
-    box-shadow: 0 2px 12px rgba(14, 165, 233, 0.16);
+    background: linear-gradient(180deg, rgba(224, 242, 254, 0.99), rgba(186, 230, 253, 0.95));
+    box-shadow:
+      0 16px 26px rgba(14, 165, 233, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.78);
   }
 
   .vehicle-mode-icon { font-size: 1.15rem; flex-shrink: 0; }

@@ -723,28 +723,35 @@
 	}
 
 	.suggestions-dropdown {
-		@apply absolute top-full left-0 right-0 mt-2 bg-white border rounded-xl z-50 max-h-80 overflow-y-auto;
+		@apply absolute top-full left-0 right-0 mt-2 border rounded-[1.15rem] z-50 max-h-80 overflow-y-auto;
+		background:
+			linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.98));
 		border-color: #cbd5e1;
-		box-shadow: 0 12px 26px rgba(15, 23, 42, 0.1);
+		box-shadow:
+			0 18px 42px rgba(15, 23, 42, 0.12),
+			inset 0 1px 0 rgba(255, 255, 255, 0.75);
+		backdrop-filter: blur(12px);
 		animation: dropdown-in 150ms ease-out;
 		transform-origin: top center;
 		contain: paint;
 	}
 
 	.suggestion-item {
-		@apply w-full px-4 py-3 text-left flex items-center gap-3 transition-colors cursor-pointer;
-		background: #ffffff;
+		@apply w-full px-4 py-3 text-left flex items-center gap-3 transition-all cursor-pointer;
+		background: transparent;
 		color: #1e293b;
+		border-bottom: 1px solid rgba(226, 232, 240, 0.9);
 		animation: suggestion-in 170ms ease;
 		animation-delay: calc(var(--stagger, 0) * 24ms);
 		animation-fill-mode: both;
 
 		&:hover {
-			background: #f8fafc;
+			background: linear-gradient(90deg, rgba(239, 246, 255, 0.95), rgba(248, 250, 252, 0.98));
+			transform: translateX(2px);
 		}
 
 		&.selected {
-			background: #e0ecff;
+			background: linear-gradient(90deg, rgba(224, 236, 255, 0.95), rgba(239, 246, 255, 0.95));
 		}
 
 		&.loading {
@@ -774,9 +781,11 @@
 	}
 
 	.quick-group {
-		@apply rounded-2xl border px-3 py-2;
-		background: rgba(248, 250, 252, 0.92);
+		@apply rounded-[1.15rem] border px-3 py-2;
+		background:
+			linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(255, 255, 255, 0.96));
 		border-color: #d8e1ec;
+		box-shadow: 0 10px 20px rgba(15, 23, 42, 0.04);
 	}
 
 	.quick-group-head {
@@ -801,14 +810,15 @@
 	}
 
 	.recent-item {
-		@apply inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-full transition-colors border;
-		background: #f8fafc;
+		@apply inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-full transition-all border;
+		background: linear-gradient(180deg, #ffffff, #f8fafc);
 		border-color: #dbe3ee;
 		color: #334155;
 		&:hover {
-			background: #eef4ff;
+			background: linear-gradient(180deg, #f0f6ff, #eaf2ff);
 			border-color: #bfdbfe;
 			color: #1e3a8a;
+			transform: translateY(-1px);
 		}
 	}
 
@@ -848,9 +858,14 @@
 	}
 
 	.history-panel {
-		@apply mt-3 px-4 py-3 bg-white border rounded-2xl mb-4;
+		@apply mt-3 px-4 py-3 border rounded-[1.15rem] mb-4;
+		background:
+			radial-gradient(circle at top right, rgba(239, 246, 255, 0.75), transparent 30%),
+			linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.98));
 		border-color: #cbd5e1;
-		box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+		box-shadow:
+			0 16px 32px rgba(15, 23, 42, 0.08),
+			inset 0 1px 0 rgba(255, 255, 255, 0.7);
 		animation: panel-in 200ms ease-out;
 	}
 
@@ -878,14 +893,17 @@
 	}
 
 	.history-item {
-		@apply w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors;
-		background: transparent;
+		@apply w-full flex items-center gap-2 px-3 py-2 text-sm rounded-xl transition-all;
+		background: rgba(255, 255, 255, 0.7);
+		border: 1px solid transparent;
 		color: #334155;
 		text-align: left;
 
 		&:hover {
-			background: #f1f5f9;
+			background: #eef4ff;
+			border-color: #c7dbf4;
 			color: #0f172a;
+			transform: translateX(2px);
 		}
 	}
 

@@ -40,11 +40,15 @@
 <style>
   .panel {
     padding: 1rem 1.1rem;
-    border-radius: 1.25rem;
-    background: rgba(255, 255, 255, 0.9);
+    border-radius: 1.35rem;
+    background:
+      radial-gradient(circle at top right, rgba(233, 213, 255, 0.42), transparent 28%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(250, 245, 255, 0.95));
     border: 1px solid rgba(15, 23, 42, 0.07);
-    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
-    backdrop-filter: blur(12px);
+    box-shadow:
+      0 14px 30px rgba(15, 23, 42, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(14px);
   }
 
   .panel-head {
@@ -84,10 +88,11 @@
   }
 
   .trip-row {
-    padding: 0.75rem 0.85rem;
-    border-radius: 10px;
+    padding: 0.82rem 0.9rem;
+    border-radius: 1rem;
     border: 1.5px solid rgba(15, 23, 42, 0.07);
-    background: rgba(248, 250, 252, 0.88);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
   }
 
   .trip-row p {

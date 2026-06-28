@@ -1690,7 +1690,8 @@
   }
 
   .boarding-panel {
-    @apply mt-4 p-4 rounded-2xl border;
+    @apply mt-4 rounded-2xl border;
+    padding: 1.05rem 1rem 1rem 1.35rem;
     background: linear-gradient(145deg, #fbfdff 0%, #f3f8ff 100%);
     border-color: #cddff6;
     box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
@@ -2223,6 +2224,10 @@
 
     .boarding-grid {
       grid-template-columns: 1fr;
+    }
+
+    .boarding-panel {
+      padding: 0.9rem 0.9rem 0.9rem 1rem;
     }
 
     .map-mode-head {

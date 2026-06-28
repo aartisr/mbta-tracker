@@ -340,17 +340,29 @@
 	}
 
 	.stops-list {
-		@apply lg:col-span-1 space-y-2;
+		@apply lg:col-span-1 grid gap-2;
 	}
 
 	.stop-item {
-		@apply w-full flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-2xl hover:bg-gray-50 transition-colors text-left;
-		@apply data-[selected=true]:bg-blue-50 data-[selected=true]:border-blue-300;
-		box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+		@apply w-full flex items-center gap-3 p-3 border rounded-2xl transition-all text-left;
+		background:
+			linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 251, 255, 0.97));
+		border-color: #d9e6f3;
+		box-shadow:
+			0 10px 24px rgba(15, 23, 42, 0.04),
+			inset 0 1px 0 rgba(255, 255, 255, 0.75);
 	}
 
 	.stop-item.selected {
-		@apply bg-blue-50 border-blue-300;
+		background: linear-gradient(180deg, #eef6ff, #e8f2ff);
+		border-color: #93c5fd;
+		box-shadow: 0 14px 28px rgba(37, 99, 235, 0.08);
+	}
+
+	.stop-item:hover {
+		transform: translateY(-1px);
+		border-color: #93c5fd;
+		background: linear-gradient(180deg, #f3f8ff, #ecf4ff);
 	}
 
 	.stop-marker {
@@ -477,7 +489,7 @@
 	}
 
 	.arrivals-list {
-		@apply space-y-2;
+		@apply grid gap-2;
 	}
 
 	/* Mobile */

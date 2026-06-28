@@ -472,7 +472,9 @@
 
   .commute-rail {
     @apply rounded-2xl border p-3;
-    background: #f8fbff;
+    background:
+      radial-gradient(circle at top left, rgba(34, 197, 94, 0.08), transparent 28%),
+      linear-gradient(180deg, rgba(248, 251, 255, 0.98), rgba(255, 255, 255, 0.98));
     border-color: #d9e6f3;
   }
 
@@ -483,7 +485,8 @@
 
   .commute-item {
     @apply w-full rounded-2xl border px-3 py-2 text-left;
-    background: rgba(255, 255, 255, 0.95);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.98));
     border-color: #dbe7f5;
     color: var(--text-body);
     display: flex;
@@ -496,7 +499,9 @@
   .commute-item:hover {
     transform: translateY(-1px);
     border-color: #bcd6f1;
-    box-shadow: 0 10px 18px rgba(15, 23, 42, 0.06);
+    box-shadow:
+      0 14px 24px rgba(15, 23, 42, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.75);
   }
 
   .commute-item.active {
@@ -667,17 +672,19 @@
   }
 
   .emergency-list {
-    @apply mt-3 flex flex-col gap-2;
+    @apply mt-3 grid gap-2;
   }
 
   .emergency-option {
-    @apply rounded-xl border px-3 py-2;
-    background: #f8fafc;
+    @apply rounded-2xl border px-3 py-2;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.98));
     border-color: #dbe7f5;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 0.7rem;
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.04);
   }
 
   .emergency-option-copy {

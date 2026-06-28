@@ -489,7 +489,12 @@
   .mission-card {
     @apply rounded-2xl border p-3;
     border-color: #e9d5ff;
-    background: linear-gradient(180deg, #ffffff 0%, #faf5ff 100%);
+    background:
+      radial-gradient(circle at top right, rgba(217, 70, 239, 0.08), transparent 24%),
+      linear-gradient(180deg, #ffffff 0%, #faf5ff 100%);
+    box-shadow:
+      0 12px 24px rgba(15, 23, 42, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.75);
   }
 
   .mission-card[data-difficulty='hard'] {
@@ -567,9 +572,11 @@
   }
 
   .leaderboard-list {
-    @apply mt-3 rounded-xl border;
+    @apply mt-3 rounded-2xl border overflow-hidden;
     border-color: #ddd6fe;
-    background: #faf5ff;
+    background:
+      linear-gradient(180deg, rgba(250, 245, 255, 0.97), rgba(255, 255, 255, 0.97));
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
   }
 
   .leaderboard-row {
@@ -578,6 +585,10 @@
     gap: 0.5rem;
     color: #4c1d95;
     border-bottom: 1px solid #e9d5ff;
+  }
+
+  .leaderboard-row:nth-child(odd) {
+    background: rgba(255, 255, 255, 0.44);
   }
 
   .leaderboard-row:last-child {
@@ -612,14 +623,16 @@
   }
 
   .forum-list {
-    @apply mt-4 grid gap-2;
+    @apply mt-4 grid gap-3;
     grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
   }
 
   .forum-item {
     @apply rounded-2xl border p-3;
     border-color: #e2e8f0;
-    background: rgba(248, 250, 252, 0.92);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
+    box-shadow: 0 12px 22px rgba(15, 23, 42, 0.05);
   }
 
   .forum-item strong {
