@@ -338,19 +338,32 @@ async function loadAllRoutes(): Promise<void> {
     return;
   }
 
-  allRoutesCache.clear();
-  const data = await fetchJson<MBTAResponse<RoutePayload[]>>(
-    `${MBTA_API_BASE}/routes?filter[type]=0,1,2,3,4&fields[route]=number,name,long_name,description,type,direction_names&page[limit]=500`
-  );
+  try {
+    const data = await fetchJson<MBTAResponse<RoutePayload[]>>(
+      `${MBTA_API_BASE}/routes?filter[type]=0,1,2,3,4&fields[route]=number,name,long_name,description,type,direction_names&page[limit]=500`
+    );
 
-  for (const route of data.data || []) {
-    const normalized = routeResultFromPayload(route);
-    if (normalized) {
-      allRoutesCache.set(normalized.route_id, normalized);
+    const nextCache = new Map<string, RouteResult>();
+    for (const route of data.data || []) {
+      const normalized = routeResultFromPayload(route);
+      if (normalized) {
+        nextCache.set(normalized.route_id, normalized);
+      }
+    }
+
+    if (nextCache.size > 0) {
+      allRoutesCache.clear();
+      for (const [key, value] of nextCache.entries()) {
+        allRoutesCache.set(key, value);
+      }
+      routeCacheLoadedAt = now();
+    }
+  } catch {
+    // Keep serving the stale route cache if the live refresh fails.
+    if (allRoutesCache.size > 0) {
+      routeCacheLoadedAt = now();
     }
   }
-
-  routeCacheLoadedAt = now();
 }
 
 async function loadAllStops(): Promise<void> {
@@ -358,24 +371,37 @@ async function loadAllStops(): Promise<void> {
     return;
   }
 
-  allStopsCache.clear();
-  let nextUrl: string | null =
-    `${MBTA_API_BASE}/stops?filter[route_type]=0,1,2,3,4&fields[stop]=name,code,latitude,longitude,wheelchair_boarding,parent_station,accessibility&sort=name&page[limit]=500`;
+  try {
+    const nextStops = new Map<string, StopResult>();
+    let nextUrl: string | null =
+      `${MBTA_API_BASE}/stops?filter[route_type]=0,1,2,3,4&fields[stop]=name,code,latitude,longitude,wheelchair_boarding,parent_station,accessibility&sort=name&page[limit]=500`;
 
-  while (nextUrl) {
-    const payload: MBTAResponse<StopPayload[]> = await fetchJson(nextUrl);
-    for (const stop of payload.data || []) {
-      const normalized = stopResultFromPayload(stop);
-      if (normalized) {
-        allStopsCache.set(normalized.stop_id, normalized);
+    while (nextUrl) {
+      const payload: MBTAResponse<StopPayload[]> = await fetchJson(nextUrl);
+      for (const stop of payload.data || []) {
+        const normalized = stopResultFromPayload(stop);
+        if (normalized) {
+          nextStops.set(normalized.stop_id, normalized);
+        }
       }
+
+      const links = payload.links;
+      nextUrl = links?.next || null;
     }
 
-    const links = payload.links;
-    nextUrl = links?.next || null;
+    if (nextStops.size > 0) {
+      allStopsCache.clear();
+      for (const [key, value] of nextStops.entries()) {
+        allStopsCache.set(key, value);
+      }
+      stopCacheLoadedAt = now();
+    }
+  } catch {
+    // Keep serving the stale stop cache if the live refresh fails.
+    if (allStopsCache.size > 0) {
+      stopCacheLoadedAt = now();
+    }
   }
-
-  stopCacheLoadedAt = now();
 }
 
 function getCachedRoutes(): RouteResult[] {
@@ -459,69 +485,81 @@ async function searchVehicle(query: string): Promise<VehicleResult[]> {
 }
 
 async function searchAddress(query: string): Promise<AddressResult[]> {
-  await loadAllStops();
-  const params = new URLSearchParams({
-    q: query,
-    format: 'jsonv2',
-    addressdetails: '1',
-    limit: '3',
-    countrycodes: 'us'
-  });
+  try {
+    await loadAllStops();
+    const params = new URLSearchParams({
+      q: query,
+      format: 'jsonv2',
+      addressdetails: '1',
+      limit: '3',
+      countrycodes: 'us'
+    });
 
-  const results = await fetchJson<Array<{ display_name: string; lat: string; lon: string }>>(
-    `${NOMINATIM_BASE}/search?${params.toString()}`
-  );
+    const results = await fetchJson<Array<{ display_name: string; lat: string; lon: string }>>(
+      `${NOMINATIM_BASE}/search?${params.toString()}`
+    );
 
-  return results.map((item) => {
-    const latitude = Number(item.lat);
-    const longitude = Number(item.lon);
-    const nearby_stops = getCachedStops()
-      .map((stop) => ({
-        stop,
-        distance: distanceKm(latitude, longitude, stop.latitude, stop.longitude)
-      }))
-      .sort((a, b) => a.distance - b.distance)
-      .slice(0, 5)
-      .map(({ stop }) => stop);
+    return results.map((item) => {
+      const latitude = Number(item.lat);
+      const longitude = Number(item.lon);
+      const nearby_stops = getCachedStops()
+        .map((stop) => ({
+          stop,
+          distance: distanceKm(latitude, longitude, stop.latitude, stop.longitude)
+        }))
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 5)
+        .map(({ stop }) => stop);
 
-    return {
-      type: 'address',
-      address: item.display_name,
-      latitude,
-      longitude,
-      nearby_stops,
-      distance_km: nearby_stops.length > 0 ? distanceKm(latitude, longitude, nearby_stops[0].latitude, nearby_stops[0].longitude) : 0,
-      confidence: 0.78
-    };
-  });
+      return {
+        type: 'address',
+        address: item.display_name,
+        latitude,
+        longitude,
+        nearby_stops,
+        distance_km: nearby_stops.length > 0 ? distanceKm(latitude, longitude, nearby_stops[0].latitude, nearby_stops[0].longitude) : 0,
+        confidence: 0.78
+      };
+    });
+  } catch {
+    return [];
+  }
 }
 
 async function searchLandmark(query: string): Promise<LandmarkResult[]> {
-  const addresses = await searchAddress(query);
-  return addresses.map((address) => ({
-    type: 'landmark',
-    landmark_name: address.address,
-    latitude: address.latitude,
-    longitude: address.longitude,
-    nearby_stops: address.nearby_stops,
-    confidence: 0.7
-  }));
+  try {
+    const addresses = await searchAddress(query);
+    return addresses.map((address) => ({
+      type: 'landmark',
+      landmark_name: address.address,
+      latitude: address.latitude,
+      longitude: address.longitude,
+      nearby_stops: address.nearby_stops,
+      confidence: 0.7
+    }));
+  } catch {
+    return [];
+  }
 }
 
 async function resolveSearch(query: SearchQuery): Promise<SearchResult[]> {
-  switch (query.query_type) {
-    case 'route':
-      return searchRoutes(query.query_string);
-    case 'stop':
-      return searchStops(query.query_string);
-    case 'address':
-      return searchAddress(query.query_string);
-    case 'vehicle':
-      return searchVehicle(query.query_string);
-    case 'landmark':
-      return searchLandmark(query.query_string);
-    default:
-      return [];
+  try {
+    switch (query.query_type) {
+      case 'route':
+        return searchRoutes(query.query_string);
+      case 'stop':
+        return searchStops(query.query_string);
+      case 'address':
+        return searchAddress(query.query_string);
+      case 'vehicle':
+        return searchVehicle(query.query_string);
+      case 'landmark':
+        return searchLandmark(query.query_string);
+      default:
+        return [];
+    }
+  } catch {
+    return [];
   }
 }
 
@@ -538,8 +576,12 @@ async function autocomplete(query: string, limit = 10): Promise<SearchResult[]> 
   ];
 
   if (isAddressLike(normalized)) {
-    const addressResults = await searchAddress(query);
-    results.unshift(...addressResults.slice(0, 4));
+    try {
+      const addressResults = await searchAddress(query);
+      results.unshift(...addressResults.slice(0, 4));
+    } catch {
+      // Autocomplete should stay responsive even if geocoding is unavailable.
+    }
   }
 
   const deduped = new Map<string, SearchResult>();

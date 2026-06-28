@@ -363,6 +363,7 @@
 
       const data = await response.json();
       searchResults = data.results || [];
+      routeInfoMessage = typeof data.warning === 'string' && data.warning.trim() ? data.warning : null;
 
       await track('search_submitted', {
         query_length: trimmedQuery.length,

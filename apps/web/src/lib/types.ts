@@ -125,6 +125,7 @@ export interface SearchResponse {
 	query: SearchQuery;
 	results: SearchResult[];
 	execution_time_ms: number;
+	warning?: string;
 }
 
 export interface CrowdingForecastPoint {

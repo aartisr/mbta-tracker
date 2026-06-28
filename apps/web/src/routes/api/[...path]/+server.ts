@@ -55,14 +55,19 @@ export const GET: RequestHandler = async ({ params, url, platform }) => {
   }
 
   if (segments[0] === 'search' && segments[1] === 'autocomplete') {
-    const q = String(url.searchParams.get('q') || '').trim();
-    const limit = Number.parseInt(url.searchParams.get('limit') || '10', 10);
-    if (!q) return json({ query: q, suggestions: [], limit: 10 });
-    return json({
-      query: q,
-      suggestions: await autocomplete(q, Number.isNaN(limit) ? 10 : Math.max(1, Math.min(15, limit))),
-      limit: Number.isNaN(limit) ? 10 : Math.max(1, Math.min(15, limit))
-    });
+    try {
+      const q = String(url.searchParams.get('q') || '').trim();
+      const limit = Number.parseInt(url.searchParams.get('limit') || '10', 10);
+      if (!q) return json({ query: q, suggestions: [], limit: 10 });
+      const safeLimit = Number.isNaN(limit) ? 10 : Math.max(1, Math.min(15, limit));
+      return json({
+        query: q,
+        suggestions: await autocomplete(q, safeLimit),
+        limit: safeLimit
+      });
+    } catch {
+      return json({ query: String(url.searchParams.get('q') || '').trim(), suggestions: [], limit: 10, warning: 'Autocomplete is temporarily unavailable.' });
+    }
   }
 
   if (segments[0] === 'stop' && segments[2] === 'arrivals') {
@@ -182,17 +187,29 @@ export const POST: RequestHandler = async ({ params, request, url, platform }) =
 
   if (segments[0] === 'search' && segments[1] === undefined) {
     const body = await readJsonBody(request);
-    const q = typeof body.q === 'string' ? body.q : '';
-    if (!q) return badRequest('Missing or invalid query string (q)');
-    const parsed = searchParser.parse(q);
-    const query = { query_string: parsed.normalized_query, query_type: parsed.query_type, filters: (body.filters as Record<string, unknown>) || {} };
-    const started = Date.now();
-    const results = await resolveSearch(query);
-    return json({
-      query,
-      results,
-      execution_time_ms: Date.now() - started
-    });
+    try {
+      const q = typeof body.q === 'string' ? body.q : '';
+      if (!q) return badRequest('Missing or invalid query string (q)');
+      const parsed = searchParser.parse(q);
+      const query = { query_string: parsed.normalized_query, query_type: parsed.query_type, filters: (body.filters as Record<string, unknown>) || {} };
+      const started = Date.now();
+      const results = await resolveSearch(query);
+      return json({
+        query,
+        results,
+        execution_time_ms: Date.now() - started
+      });
+    } catch {
+      const q = typeof body.q === 'string' ? body.q : '';
+      const parsed = searchParser.parse(q || '');
+      const query = { query_string: parsed.normalized_query, query_type: parsed.query_type, filters: (body.filters as Record<string, unknown>) || {} };
+      return json({
+        query,
+        results: [],
+        execution_time_ms: 0,
+        warning: 'Search is temporarily degraded. Please try again in a moment.'
+      });
+    }
   }
 
   if (segments[0] === 'telemetry') {
