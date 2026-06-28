@@ -1997,33 +1997,33 @@
   }
 
   .footer-content {
-    @apply max-w-2xl mx-auto px-4 py-3.5 text-center text-xs;
+    @apply max-w-2xl mx-auto px-4 py-3 text-center text-xs;
     color: var(--text-soft);
     line-height: 1.6;
   }
 
   .footer-ownership {
-    margin: 0.15rem 0 0;
-    font-size: 0.72rem;
-    color: #94a3b8;
+    margin: 0.05rem 0 0;
+    font-size: 0.68rem;
+    color: #a8b3c4;
+    letter-spacing: 0.01em;
   }
 
   .footer-ownership a {
     color: inherit;
     text-decoration: none;
-    font-weight: 600;
+    font-weight: 500;
   }
 
   .footer-ownership a:hover {
     color: var(--brand-strong);
-    text-decoration: underline;
-    text-underline-offset: 0.14em;
+    text-decoration: none;
   }
 
   .footer-credits {
-    margin: 0.1rem 0 0;
-    font-size: 0.7rem;
-    color: #a1acc0;
+    margin: 0.05rem 0 0;
+    font-size: 0.68rem;
+    color: #b1bccb;
     line-height: 1.45;
   }
 
@@ -2183,10 +2183,6 @@
   @media (max-width: 640px) {
     .header-layout {
       @apply px-3 py-2 gap-1.5;
-    }
-
-    .app-logo {
-      @apply text-lg;
     }
 
     .main-nav {
