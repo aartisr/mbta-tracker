@@ -1441,18 +1441,21 @@
   }
 
   .main-content {
-    @apply flex-1 max-w-6xl mx-auto w-full px-5 py-8;
+    @apply flex-1 max-w-6xl mx-auto w-full px-5 py-7;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
     position: relative;
     z-index: 1;
   }
 
   .search-view {
-    @apply space-y-4;
+    @apply space-y-3;
     animation: fade-up 300ms var(--ease-premium);
   }
 
   .search-container {
-    @apply sticky top-24 z-30 py-4 px-4 rounded-2xl border;
+    @apply sticky top-24 z-30 py-3.5 px-4 rounded-[1.35rem] border;
     margin-left: 0;
     margin-right: 0;
     width: 100%;
@@ -1479,7 +1482,7 @@
   }
 
   .search-hero h2 {
-    @apply m-0 mt-1 text-[1.2rem] font-semibold;
+    @apply m-0 mt-1 text-[1.12rem] font-semibold;
     color: var(--text-strong);
     letter-spacing: -0.02em;
     line-height: 1.18;
@@ -1565,7 +1568,7 @@
   }
 
   .empty-results {
-    @apply mt-6 p-5 rounded-2xl border;
+    @apply mt-4 p-5 rounded-2xl border;
     background: #f8fafc;
     border-color: var(--border-soft);
     color: var(--text-body);
@@ -1580,20 +1583,20 @@
   }
 
   .results-section {
-    @apply mt-6;
+    @apply mt-2;
   }
 
   .results-head {
-    @apply flex items-start justify-between gap-3 mb-3;
+    @apply flex items-end justify-between gap-3 mb-2;
   }
 
   .results-title {
-    @apply text-lg font-semibold m-0;
+    @apply text-[0.82rem] font-semibold m-0 uppercase tracking-[0.22em];
     color: var(--text-strong);
   }
 
   .results-summary-pills {
-    @apply mt-2 flex flex-wrap gap-2;
+    @apply mt-1.5 flex flex-wrap gap-2;
   }
 
   .results-summary-pill {
@@ -1947,7 +1950,7 @@
   }
 
   .view-header {
-    @apply flex items-center gap-4 mb-4;
+    @apply flex items-center gap-4 mb-3;
   }
 
   .back-button {
@@ -1963,14 +1966,14 @@
   }
 
   .app-footer {
-    @apply border-t mt-10;
+    @apply border-t mt-8;
     background: rgba(255, 255, 255, 0.74);
     border-color: var(--border-soft);
     backdrop-filter: blur(6px);
   }
 
   .footer-content {
-    @apply max-w-2xl mx-auto px-4 py-4 text-center text-xs;
+    @apply max-w-2xl mx-auto px-4 py-3.5 text-center text-xs;
     color: var(--text-soft);
     line-height: 1.6;
   }
