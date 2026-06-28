@@ -17,6 +17,8 @@ This worker is configured in [`wrangler.toml`](./wrangler.toml) with:
 - `compatibility_date = "2026-06-24"`
 - Durable Object binding `VEHICLE_HUB`
 
+If you use Wrangler type generation for the web app or worker configs, keep any `worker-configuration.d.ts` file in the Wrangler-generated format. Cloudflare's build checks reject hand-written placeholders.
+
 ## Deploy
 
 From the repo root:

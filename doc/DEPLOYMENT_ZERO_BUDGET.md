@@ -130,6 +130,7 @@ For a personal project or low traffic, this is usually enough.
 - If the worker fails, redeploy with `npm run deploy:cf:worker`
 - If search or arrivals fail locally, use `npm run dev` in the repo root to debug
 - If Pages still sees old install metadata, clear the Pages build cache and redeploy
+- If Pages complains about `worker-configuration.d.ts`, make sure the file is Wrangler-generated and not a handwritten placeholder
 
 ## Summary
 
