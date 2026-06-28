@@ -25,11 +25,7 @@
     shareImageUrl: string;
   };
 
-  type LaunchMode = 'loading' | 'legacy' | 'search';
-  let launchMode: LaunchMode = 'loading';
-  let rolloutPercent = 0;
-  let rolloutReason = 'pending';
-  let rolloutBucket = -1;
+  let launchMode: 'loading' | 'legacy' | 'search' = 'search';
   let launchError: string | null = null;
 
   let currentView: 'search' | 'stop' | 'route' | 'vehicle' | 'alerts' = 'search';
@@ -229,59 +225,9 @@
     }
   }
 
-  onMount(async () => {
+  onMount(() => {
     sessionId = getOrCreateSessionId();
-    const params = new URLSearchParams(browser ? window.location.search : '');
-    const forceLegacy = params.get('force_legacy') === '1';
-    const forceSearch = params.get('force_search') === '1';
-    const controller = new AbortController();
-    const timeoutMs = 4000;
-    const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
-
-    try {
-      const rolloutUrl = new URL('/api/rollout', window.location.origin);
-      rolloutUrl.searchParams.set('client_id', sessionId);
-
-      if (forceSearch) {
-        rolloutUrl.searchParams.set('force', 'on');
-      }
-      if (forceLegacy) {
-        rolloutUrl.searchParams.set('force', 'off');
-      }
-
-      const response = await fetch(rolloutUrl.toString(), {
-        signal: controller.signal
-      });
-
-      if (!response.ok) {
-        throw new Error(`Rollout request failed with ${response.status}`);
-      }
-
-      const payload = await response.json();
-
-      rolloutPercent = payload.percent ?? 0;
-      rolloutReason = payload.reason ?? 'bucket';
-      rolloutBucket = payload.bucket ?? -1;
-      launchMode = payload.enabled ? 'search' : 'legacy';
-
-      await track('rollout_assigned', {
-        enabled: payload.enabled,
-        percent: rolloutPercent,
-        reason: rolloutReason,
-        bucket: rolloutBucket,
-        forced: forceLegacy || forceSearch
-      });
-    } catch (error) {
-      launchMode = 'legacy';
-      if (error instanceof Error && error.name === 'AbortError') {
-        launchError = `Rollout request timed out after ${timeoutMs}ms`;
-      } else {
-        launchError = error instanceof Error ? error.message : 'Unknown rollout error';
-      }
-      await track('rollout_error_fallback_legacy', { message: launchError });
-    } finally {
-      window.clearTimeout(timeout);
-    }
+    void track('home_view_loaded', { route: 'search' });
   });
 
   onMount(() => {
@@ -781,128 +727,128 @@
     class:high-contrast={highContrastEnabled}
     class:dyslexia-font={dyslexiaFontEnabled}
   >
-  <div class="ambient-layers" aria-hidden="true">
-    <span class="ambient-orb orb-one"></span>
-    <span class="ambient-orb orb-two"></span>
-    <span class="ambient-orb orb-three"></span>
-  </div>
-  <!-- Minimalist Header: Search + 3 Main Tabs + Menu -->
-  <header class="app-header">
-    <div class="header-layout">
-      <h1 class="app-logo">MBTA</h1>
-      <nav class="main-nav" aria-label="Primary navigation">
-        <button
-          class="nav-tab {currentView === 'search' ? 'active' : ''}"
-          on:click={() => { currentView = 'search'; }}
-          aria-selected={currentView === 'search'}
-          role="tab"
-        >
-          Search
-        </button>
-        <button
-          class="nav-tab {homeMode === 'map' ? 'active' : ''}"
-          on:click={handleMapTabClick}
-          aria-selected={homeMode === 'map' && currentView === 'search'}
-          role="tab"
-        >
-          Map
-        </button>
-        <button
-          class="nav-tab {currentView === 'alerts' ? 'active' : ''}"
-          on:click={() => { currentView = 'alerts'; }}
-          aria-selected={currentView === 'alerts'}
-          role="tab"
-        >
-          Alerts
-          {#if currentAlerts.length > 0}
-            <span class="alert-badge">{currentAlerts.length}</span>
-          {/if}
-        </button>
-      </nav>
-      <div class="header-actions">
-        <button
-          class="settings-button {settingsMenuOpen ? 'active' : ''}"
-          bind:this={settingsButtonEl}
-          on:click={() => settingsMenuOpen = !settingsMenuOpen}
-          aria-label="Settings and accessibility"
-          aria-expanded={settingsMenuOpen}
-          aria-haspopup="menu"
-        >
-          <svg
-            class="settings-icon"
-            viewBox="0 0 24 24"
-            width="18"
-            height="18"
-            aria-hidden="true"
-          >
-            <path
-              d="M12 8.25a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Zm8.25 3.75a6.12 6.12 0 0 0-.12-1.2l1.68-1.31-1.6-2.77-2 .78a6.7 6.7 0 0 0-2.08-1.2l-.31-2.13H9.13l-.31 2.13a6.7 6.7 0 0 0-2.08 1.2l-2-.78-1.6 2.77 1.68 1.31a6.12 6.12 0 0 0 0 2.4L3.14 15.2l1.6 2.77 2-.78c.6.5 1.29.92 2.08 1.2l.31 2.13h5.74l.31-2.13c.79-.28 1.48-.7 2.08-1.2l2 .78 1.6-2.77-1.68-1.31c.08-.39.12-.79.12-1.2Z"
-              fill="currentColor"
-            />
-          </svg>
-        </button>
-      </div>
+    <div class="ambient-layers" aria-hidden="true">
+      <span class="ambient-orb orb-one"></span>
+      <span class="ambient-orb orb-two"></span>
+      <span class="ambient-orb orb-three"></span>
     </div>
-
-    <!-- Settings Menu (Hidden by Default) -->
-    {#if settingsMenuOpen}
-      <div class="settings-panel" bind:this={settingsPanelEl} role="menu" aria-label="Settings and accessibility options">
-        <div class="settings-group">
-          <h3>Accessibility</h3>
+    <!-- Minimalist Header: Search + 3 Main Tabs + Menu -->
+    <header class="app-header">
+      <div class="header-layout">
+        <h1 class="app-logo">MBTA</h1>
+        <nav class="main-nav" aria-label="Primary navigation">
           <button
-            class="setting-item {highContrastEnabled ? 'active' : ''}"
-            on:click={() => {
-              toggleHighContrast();
-              closeSettingsMenu();
-            }}
-            aria-pressed={highContrastEnabled}
+            class="nav-tab {currentView === 'search' ? 'active' : ''}"
+            on:click={() => { currentView = 'search'; }}
+            aria-selected={currentView === 'search'}
+            role="tab"
           >
-            {highContrastEnabled ? '✓' : '○'} High Contrast
+            Search
           </button>
           <button
-            class="setting-item {dyslexiaFontEnabled ? 'active' : ''}"
-            on:click={() => {
-              toggleDyslexiaFont();
-              closeSettingsMenu();
-            }}
-            aria-pressed={dyslexiaFontEnabled}
+            class="nav-tab {homeMode === 'map' ? 'active' : ''}"
+            on:click={handleMapTabClick}
+            aria-selected={homeMode === 'map' && currentView === 'search'}
+            role="tab"
           >
-            {dyslexiaFontEnabled ? '✓' : '○'} Dyslexia Font
-          </button>
-        </div>
-        <div class="settings-group">
-          <h3>Features</h3>
-          <button
-            class="setting-item {showPhase3Hub ? 'active' : ''}"
-            on:click={() => showPhase3Hub = !showPhase3Hub}
-            aria-pressed={showPhase3Hub}
-          >
-            {showPhase3Hub ? '✓' : '○'} Commute Insights
+            Map
           </button>
           <button
-            class="setting-item {showPhase4Hub ? 'active' : ''}"
-            on:click={() => showPhase4Hub = !showPhase4Hub}
-            aria-pressed={showPhase4Hub}
+            class="nav-tab {currentView === 'alerts' ? 'active' : ''}"
+            on:click={() => { currentView = 'alerts'; }}
+            aria-selected={currentView === 'alerts'}
+            role="tab"
           >
-            {showPhase4Hub ? '✓' : '○'} Trip Planning
+            Alerts
+            {#if currentAlerts.length > 0}
+              <span class="alert-badge">{currentAlerts.length}</span>
+            {/if}
           </button>
-        </div>
-        <div class="settings-footer">
+        </nav>
+        <div class="header-actions">
           <button
-            class="close-settings"
-            on:click={closeSettingsMenu}
-            aria-label="Close settings"
+            class="settings-button {settingsMenuOpen ? 'active' : ''}"
+            bind:this={settingsButtonEl}
+            on:click={() => settingsMenuOpen = !settingsMenuOpen}
+            aria-label="Settings and accessibility"
+            aria-expanded={settingsMenuOpen}
+            aria-haspopup="menu"
           >
-            Done
+            <svg
+              class="settings-icon"
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              aria-hidden="true"
+            >
+              <path
+                d="M12 8.25a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Zm8.25 3.75a6.12 6.12 0 0 0-.12-1.2l1.68-1.31-1.6-2.77-2 .78a6.7 6.7 0 0 0-2.08-1.2l-.31-2.13H9.13l-.31 2.13a6.7 6.7 0 0 0-2.08 1.2l-2-.78-1.6 2.77 1.68 1.31a6.12 6.12 0 0 0 0 2.4L3.14 15.2l1.6 2.77 2-.78c.6.5 1.29.92 2.08 1.2l.31 2.13h5.74l.31-2.13c.79-.28 1.48-.7 2.08-1.2l2 .78 1.6-2.77-1.68-1.31c.08-.39.12-.79.12-1.2Z"
+                fill="currentColor"
+              />
+            </svg>
           </button>
         </div>
       </div>
-    {/if}
-  </header>
 
-  <!-- Main Content -->
-  <div class="layout-container">
-    <main class="main-content">
+      <!-- Settings Menu (Hidden by Default) -->
+      {#if settingsMenuOpen}
+        <div class="settings-panel" bind:this={settingsPanelEl} role="menu" aria-label="Settings and accessibility options">
+          <div class="settings-group">
+            <h3>Accessibility</h3>
+            <button
+              class="setting-item {highContrastEnabled ? 'active' : ''}"
+              on:click={() => {
+                toggleHighContrast();
+                closeSettingsMenu();
+              }}
+              aria-pressed={highContrastEnabled}
+            >
+              {highContrastEnabled ? '✓' : '○'} High Contrast
+            </button>
+            <button
+              class="setting-item {dyslexiaFontEnabled ? 'active' : ''}"
+              on:click={() => {
+                toggleDyslexiaFont();
+                closeSettingsMenu();
+              }}
+              aria-pressed={dyslexiaFontEnabled}
+            >
+              {dyslexiaFontEnabled ? '✓' : '○'} Dyslexia Font
+            </button>
+          </div>
+          <div class="settings-group">
+            <h3>Features</h3>
+            <button
+              class="setting-item {showPhase3Hub ? 'active' : ''}"
+              on:click={() => showPhase3Hub = !showPhase3Hub}
+              aria-pressed={showPhase3Hub}
+            >
+              {showPhase3Hub ? '✓' : '○'} Commute Insights
+            </button>
+            <button
+              class="setting-item {showPhase4Hub ? 'active' : ''}"
+              on:click={() => showPhase4Hub = !showPhase4Hub}
+              aria-pressed={showPhase4Hub}
+            >
+              {showPhase4Hub ? '✓' : '○'} Trip Planning
+            </button>
+          </div>
+          <div class="settings-footer">
+            <button
+              class="close-settings"
+              on:click={closeSettingsMenu}
+              aria-label="Close settings"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      {/if}
+    </header>
+
+    <!-- Main Content -->
+    <div class="layout-container">
+      <main class="main-content">
     {#if currentView === 'search'}
       <!-- Search View -->
       <div class="search-view">
