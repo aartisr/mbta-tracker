@@ -1459,10 +1459,10 @@
 
   .search-container {
     @apply sticky top-24 z-30 py-3.5 rounded-[1.35rem] border mx-auto;
-    padding-left: 1.45rem;
-    padding-right: 1.05rem;
-    padding-top: 1.05rem;
-    padding-bottom: 0.95rem;
+    padding-left: 1.75rem;
+    padding-right: 1.15rem;
+    padding-top: 1.1rem;
+    padding-bottom: 1rem;
     width: 100%;
     background: rgba(255, 255, 255, 0.93);
     border-color: var(--border-soft);
@@ -1475,11 +1475,12 @@
 
   .search-hero {
     @apply flex items-start justify-between gap-4 mb-3;
+    padding-left: 0.15rem;
   }
 
   .search-hero-copy {
     @apply min-w-0;
-    padding-left: 0.1rem;
+    padding-left: 0.2rem;
   }
 
   .search-hero-kicker {
@@ -2208,8 +2209,8 @@
 
     .search-container {
       @apply py-3;
-      padding-left: 0.95rem;
-      padding-right: 0.95rem;
+      padding-left: 1rem;
+      padding-right: 1rem;
       position: static;
     }
 
