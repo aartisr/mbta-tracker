@@ -1305,31 +1305,34 @@
   }
 
   .header-layout {
-    @apply max-w-6xl mx-auto px-2.5 py-2 flex items-center justify-between gap-1;
+    @apply max-w-6xl mx-auto px-2.5 py-2 flex items-center justify-between gap-2;
     width: min(100%, 72rem);
   }
 
   .app-logo {
-    @apply text-lg font-bold m-0 flex-shrink-0;
+    @apply text-[1.05rem] font-bold m-0 flex-shrink-0;
     color: var(--brand);
     font-family: 'Fraunces', serif;
     letter-spacing: -0.02em;
   }
 
   .main-nav {
-    @apply flex items-center gap-0.5 flex-1 max-w-[34rem] p-0.5 rounded-full border;
+    @apply flex items-center gap-1 flex-1 max-w-[31rem] p-1 rounded-full border;
     background: rgba(248, 251, 255, 0.92);
     border-color: #d8e3ef;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      0 10px 20px rgba(15, 23, 42, 0.04);
   }
 
   .nav-tab {
-    @apply inline-flex items-center justify-center px-2.5 py-1.5 text-[12px] font-semibold rounded-full transition-colors border-0;
+    @apply inline-flex items-center justify-center px-3 py-1.5 text-[11px] font-semibold rounded-full transition-colors border-0;
     background: transparent;
     color: var(--text-soft);
     cursor: pointer;
     position: relative;
     white-space: nowrap;
+    min-height: 2.1rem;
   }
 
   .nav-tab:hover {
@@ -1350,7 +1353,7 @@
   }
 
   .header-actions {
-    @apply flex items-center gap-1.5 ml-auto;
+    @apply flex items-center gap-2 ml-auto;
     flex-shrink: 0;
   }
 
