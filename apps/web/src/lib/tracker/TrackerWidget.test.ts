@@ -145,6 +145,8 @@ describe('TrackerWidget', () => {
       ]
     });
 
+    await fireEvent.click(getByText('Show details'));
+
     await waitFor(() => {
       expect(getAllByText('Route 1').length).toBeGreaterThan(0);
       expect(mapInstances[0].vehicleSource.setData).toHaveBeenCalled();

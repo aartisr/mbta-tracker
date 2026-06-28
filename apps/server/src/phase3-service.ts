@@ -69,10 +69,14 @@ export class Phase3Service {
     return hashUserId(sessionId.trim() || 'anonymous-session');
   }
 
-  private seedUserCommutes(userHash: string): CommuteRecord[] {
+  private seedUserCommutes(userHash: string, createIfMissing = true): CommuteRecord[] {
     const existing = this.repository.getUserCommutes(userHash);
     if (existing) {
       return existing;
+    }
+
+    if (!createIfMissing) {
+      return [];
     }
 
     const now = this.now();
@@ -179,7 +183,8 @@ export class Phase3Service {
 
   getMyCommutes(sessionId: string): MyCommutesResponse {
     const userHash = this.resolveUserHash(sessionId);
-    const commutes = this.seedUserCommutes(userHash);
+    const pref = this.ensurePrivacyPreference(userHash);
+    const commutes = pref.opted_in ? this.seedUserCommutes(userHash) : [];
 
     return {
       user_hash: userHash,
@@ -194,7 +199,8 @@ export class Phase3Service {
     toStop: { stop_id: string; stop_name: string }
   ): CommuteRecommendationResponse {
     const userHash = this.resolveUserHash(sessionId);
-    const history = this.seedUserCommutes(userHash);
+    const pref = this.ensurePrivacyPreference(userHash);
+    const history = pref.opted_in ? this.seedUserCommutes(userHash) : [];
     return recommendDepartureWindows(fromStop, toStop, history);
   }
 
@@ -217,7 +223,7 @@ export class Phase3Service {
   getPrivacyDashboard(sessionId: string): PrivacyDashboardResponse {
     const userHash = this.resolveUserHash(sessionId);
     const pref = this.ensurePrivacyPreference(userHash);
-    const commuteCount = this.seedUserCommutes(userHash).length;
+    const commuteCount = pref.opted_in ? this.seedUserCommutes(userHash).length : this.seedUserCommutes(userHash, false).length;
 
     return {
       user_hash: userHash,

@@ -1,405 +1,349 @@
-# MBTA Tracker - Modular Architecture Guide
+# MBTA Tracker Architecture
 
 ## Overview
 
-This document describes the new modular, highly maintainable architecture using proven design patterns.
+This repository is a monorepo for a realtime MBTA tracker with two main user surfaces:
 
-## Architecture Layers
+- A SvelteKit web app with a search-first homepage and an embeddable tracker widget.
+- A Node.js API server for local development and standalone deployments.
+- A Cloudflare Worker backend for edge realtime fanout.
 
-```
-┌─────────────────────────────────────────────┐
-│     UI Layer (Svelte Components)            │
-│  ┌────────────────┬────────────────────┐   │
-│  │  TrackerWidget │   StopFinder       │   │
-│  │ (Refactored)   │ (Pluggable)        │   │
-│  └────────────────┴────────────────────┘   │
-└─────────────────────────────────────────────┘
-                      ↓ (uses)
-┌─────────────────────────────────────────────┐
-│   Business Logic / State Management Layer   │
-│  ┌────────────────────────────────────────┐ │
-│  │   TrackerController (refactored)       │ │
-│  │   - Event handling                     │ │
-│  │   - State normalization                │ │
-│  └────────────────────────────────────────┘ │
-└─────────────────────────────────────────────┘
-                      ↓ (depends on)
-┌─────────────────────────────────────────────┐
-│         Services Layer (Pluggable)          │
-│  ┌──────────────┐  ┌──────────────────────┐ │
-│  │  Transport   │  │  Mode Detection      │ │
-│  │  Abstraction │  │  & Route Styling     │ │
-│  └──────────────┘  └──────────────────────┘ │
-│                                              │
-│  ┌──────────────┐  ┌──────────────────────┐ │
-│  │ Repositories │  │  Service Container   │ │
-│  │   (Data      │  │   (Dependency        │ │
-│  │   Layer)     │  │    Injection)        │ │
-│  └──────────────┘  └──────────────────────┘ │
-└─────────────────────────────────────────────┘
-                      ↓ (communicates with)
-┌─────────────────────────────────────────────┐
-│    External APIs / Data Sources             │
-│  ┌──────────────┬────────────────────────┐  │
-│  │  MBTA API    │  Nominatim / WebSocket │  │
-│  └──────────────┴────────────────────────┘  │
-└─────────────────────────────────────────────┘
+The code is intentionally split by runtime and responsibility so the UI, server APIs, and shared transport contracts can evolve independently.
+
+## Current Repository Layout
+
+```text
+mbta-tracker/
+├── apps/
+│   ├── web/                # SvelteKit app + tracker widget
+│   ├── server/             # Node.js API server + realtime polling routes
+│   └── realtime-worker/    # Cloudflare Worker realtime backend
+├── packages/
+│   └── transit-core/       # Shared poll/diff types and logic
+├── doc/                    # Current source-of-truth documentation
+├── README.md
+└── ARCHITECTURE.md
 ```
 
-## Design Patterns Used
+## Runtime Model
 
-### 1. **Transport Adapter Pattern** (`services/transport.ts`)
+### Web App
 
-**Problem Solved:** Different realtime data delivery mechanisms without changing consumer code.
+The primary experience lives in `apps/web`:
 
-**Components:**
-- `RealtimeTransport` - Interface defining contract
-- `BaseTransport` - Shared logic (reconnection, event dispatch, status tracking)
-- `WebSocketTransport` - WebSocket implementation
-- `SSETransport` - Server-Sent Events implementation
+- `apps/web/src/routes/+page.svelte` is the main page.
+- `apps/web/src/routes/embed/+page.svelte` renders the iframe/embed route.
+- `apps/web/src/lib/tracker/` contains the reusable tracker widget and its support modules.
 
-**Benefits:**
-- Easy to add new transports (polling, gRPC, etc.)
-- Testable in isolation
-- Decouples frontend from transport mechanism
+The web app supports:
 
-**Usage Example:**
+- search-first discovery
+- compact arrival and route cards
+- route and vehicle details
+- map and map-free modes
+- an embeddable widget API
 
-```typescript
-// Create preferred transport
-const transport = new WebSocketTransport({
-  url: 'ws://api.example.com/realtime',
-  retryMs: 1000,
-  maxRetryMs: 30000
-});
+### Local API Server
 
-// Same interface regardless of implementation
-transport.on('data', (message) => {
-  console.log('Received:', message);
-});
+`apps/server` is the local API/runtime composition root.
 
-await transport.connect();
+Important pieces:
+
+- `apps/server/src/api-server.ts` wires the Express app together.
+- `apps/server/src/routes/search-routes.ts` handles search and autocomplete.
+- `apps/server/src/routes/transit-routes.ts` handles arrivals, route stops, vehicle, and crowding endpoints.
+- `apps/server/src/routes/phase3-routes.ts` and `apps/server/src/routes/phase4-routes.ts` expose commute and missions features.
+- `apps/server/src/routes/system-routes.ts` exposes health, rollout, and telemetry endpoints.
+
+The server currently runs with Node.js and `tsx` via `npm run dev` in `apps/server`.
+
+### Edge Realtime Backend
+
+`apps/realtime-worker` is the Cloudflare Worker runtime.
+
+Its purpose is different from the local server:
+
+- it polls MBTA realtime data at the edge
+- it fanouts updates to connected clients
+- it supports the Cloudflare deployment path documented in `README.md`
+
+### Shared Core
+
+`packages/transit-core` holds the shared feed polling contracts and diff logic.
+
+This package exists so the worker and server can share the same realtime model without duplicating the core vehicle diffing concepts.
+
+## Frontend Architecture
+
+### Public Tracker Surface
+
+The tracker widget is exported from `apps/web/src/lib/tracker/public.ts` and re-exported from `apps/web/src/lib/tracker/index.ts`.
+
+The main public APIs are:
+
+- `mountTracker()`
+- `mountTrackerSelector()`
+- `mountTrackerAuto()`
+- `bootstrapTracker()`
+- `installTrackerBootstrap()`
+
+The widget also exposes `TrackerWidget` for direct use.
+
+### Widget Composition
+
+The tracker widget is structured around a few layers:
+
+```text
+TrackerWidget.svelte
+├── controller.ts
+├── config.ts
+├── normalize.ts
+├── services/
+│   ├── transport.ts
+│   ├── repositories.ts
+│   ├── mode-service.ts
+│   ├── enrichers.ts
+│   └── container.ts
+└── presentation components
+    ├── StopFinder.svelte
+    ├── VehicleList.svelte
+    ├── VehicleCluster.svelte
+    ├── VehicleDetail.svelte
+    ├── TripList.svelte
+    └── AlertsPanel.svelte
 ```
 
-### 2. **Repository Pattern** (`services/repositories.ts`)
+### Controller Responsibilities
 
-**Problem Solved:** Centralized data access with caching, error handling, and testability.
+`apps/web/src/lib/tracker/controller.ts` owns the realtime state machine for the widget.
 
-**Components:**
-- `TransitDataRepository` - Interface for transit data
-- `GeoRepository` - Interface for geocoding/location services
-- `MBTARepository` - MBTA API implementation with caching
-- `MockTransitDataRepository` - Test implementation
+It is responsible for:
 
-**Benefits:**
-- All API calls in one place
-- Caching logic centralized
-- Easy to swap implementations for testing
-- Add new data sources without changing business logic
+- resolving the websocket URL
+- connecting to the transport
+- receiving realtime payloads
+- normalizing vehicles, trips, and alerts
+- tracking connection state
+- handling reconnect backoff
+- coordinating selected vehicle state
 
-**Usage Example:**
+The controller is not a full app framework. It is a small orchestration layer around the widget state.
 
-```typescript
-const repository = new MBTARepository();
+### Widget Config
 
-// Automatic caching (24 hours)
-const allStops = await repository.getAllStops();
+`apps/web/src/lib/tracker/config.ts` defines the widget configuration and URL parameter parsing.
 
-// Nearby stops with distance calculation
-const nearby = await repository.getNearbyStops({
-  latitude: 42.36,
-  longitude: -71.06
-}, 800); // meters
+The widget supports query params and data attributes for things like:
+
+- websocket URL override
+- map style
+- center and zoom
+- embedded mode
+- list, alerts, and search visibility
+
+## Service Architecture
+
+The service layer lives under `apps/web/src/lib/tracker/services/`.
+
+It is the clearest modular boundary in the repository today.
+
+### Transport Layer
+
+`transport.ts` defines the realtime transport abstraction.
+
+Current implementations:
+
+- `WebSocketTransport`
+- `SSETransport`
+
+The shared interface is `RealtimeTransport`, and the base class handles common lifecycle concerns.
+
+### Repository Layer
+
+`repositories.ts` centralizes data access.
+
+Current repository types include:
+
+- `TransitDataRepository`
+- `GeoRepository`
+
+Current implementations include:
+
+- `MBTARepository`
+- `GeoRepository`
+- `MockTransitDataRepository`
+
+This layer keeps fetch logic, caching, and fallback behavior out of the UI.
+
+### Mode and Styling
+
+`mode-service.ts` is responsible for mode detection and route styling.
+
+It provides:
+
+- `ModeService`
+- `MBTAModeDetector`
+- `MBTARouteStyleProvider`
+
+This is where route labeling and visual treatment should live instead of being duplicated in components.
+
+### Stop Enrichment
+
+`enrichers.ts` composes stop-level enrichment steps.
+
+Current enrichers include:
+
+- realtime arrivals enrichment
+- accessibility enrichment
+- walkability enrichment
+- composite enrichment assembly
+
+### Dependency Injection
+
+`container.ts` provides the service container.
+
+Key types:
+
+- `ServiceContainer`
+- `DefaultServiceContainer`
+- `TestServiceContainer`
+- `Logger`
+
+The container is used so the widget and tests can receive explicit dependencies instead of instantiating everything inline.
+
+## Server Architecture
+
+### Composition Root
+
+`apps/server/src/api-server.ts` is the server composition root.
+
+It creates:
+
+- search parser and resolver services
+- arrivals service
+- phase 3 and phase 4 services backed by file repositories
+- API metrics and telemetry buffers
+
+Then it registers route modules:
+
+- search routes
+- transit routes
+- phase 3 routes
+- phase 4 routes
+- system routes
+
+### Search Flow
+
+The search API is currently implemented in the server as a two-step process:
+
+1. Parse the raw query with `SearchQueryParser`.
+2. Resolve it with `SearchResolverService`.
+
+This supports route, stop, address, vehicle, and landmark searches.
+
+### Transit Flow
+
+Transit-related endpoints return arrivals, route stops, vehicle details, and crowding forecasts.
+
+Those endpoints are routed through the services in `apps/server/src/`.
+
+### Persistence
+
+Phase 3 and phase 4 use file-backed repositories today.
+
+That keeps the current implementation lightweight and local-first, while still allowing the higher-level features to persist state.
+
+## Shared Data Flow
+
+The dominant realtime flow is:
+
+```text
+MBTA feed / geocoding / user query
+  -> server or worker adapter
+  -> parsing / normalization / enrichment
+  -> UI state update
+  -> compact visual presentation
 ```
 
-### 3. **Factory Pattern** (`services/mode-service.ts`)
-
-**Problem Solved:** Detecting transit mode from varied data sources with pluggable rules.
-
-**Components:**
-- `ModeDetector` - Interface for mode detection
-- `MBTAModeDetector` - Multi-rule heuristic detector with priorities
-- `RouteStyleProvider` - Central source for route colors/styling
-- `ModeService` - Singleton access point
-
-**Benefits:**
-- Priority-based detection (route_type > ferry patterns > text heuristics > fallback)
-- Easy to add custom detection rules
-- Centralized styling removes hardcoding
-- Testable rule system
-
-**Usage Example:**
-
-```typescript
-// Use default detector
-const mode = ModeService.detectMode({
-  routeId: 'boat-1',
-  routeLabel: 'Ferry',
-  routeType: 4
-}); // Returns 'ferry'
-
-// Add custom rule for local system
-ModeService.addModeRule((data) => {
-  if (data.routeId?.startsWith('express-')) {
-    return 'bus'; // Custom categorization
-  }
-  return null; // Let other rules decide
-}, 850); // Priority
-
-// Get styling
-const style = ModeService.getStyle('red', 'subway');
-// { body: '#DA291C', stroke: '#A31F15', accent: '#FF8A80' }
-```
-
-### 4. **Dependency Injection / Service Container** (`services/container.ts`)
-
-**Problem Solved:** Loosely coupled services, easy testing, runtime configuration.
-
-**Components:**
-- `ServiceContainer` - Interface
-- `DefaultServiceContainer` - Production implementation
-- `TestServiceContainer` - Test implementation with overrides
-- `Logger` - Logging interface (ConsoleLogger, SilentLogger)
-
-**Benefits:**
-- Single point of service configuration
-- Easy to mock services for testing
-- Consistent logging across app
-- Easy to swap implementations globally
-
-**Usage Example:**
-
-```typescript
-// Production setup (automatic defaults)
-const container = new DefaultServiceContainer({
-  transportType: 'websocket',
-  enableLogging: true
-});
-
-const transport = container.getTransport();
-const repository = container.getRepository();
-
-// Test setup (with mocks)
-const mockTransport = vi.fn();
-const testContainer = new TestServiceContainer({
-  getTransport: () => mockTransport as any
-});
-
-const testTransport = testContainer.getTransport();
-// Now it's mocked for testing
-```
-
-### 5. **Composite Pattern** (For Future Stop Enrichment)
-
-**Future Pattern:** Multiple data enrichment strategies combined.
-
-**Example:**
-
-```typescript
-const enricher = new CompositeStopEnricher([
-  new RealtimeArrivalsStrategy(vehicles),
-  new AccessibilityStrategy(db),
-  new StopWalkabilityStrategy(userLocation)
-]);
-
-const enrichedStops = await enricher.enrich(rawStops);
-// Each stop now has arrivals, accessibility info, walk times
-```
-
-## Module Organization
-
-```
-apps/web/src/lib/tracker/
-├── services/                          # NEW: Service layer (highly modular)
-│   ├── index.ts                      # Clean exports
-│   ├── transport.ts                  # Adapter: WebSocket, SSE, etc.
-│   ├── repositories.ts               # Repository: Data access abstraction
-│   ├── mode-service.ts               # Factory: Mode detection & styling
-│   └── container.ts                  # DI: Service configuration
-├── types.ts                          # Type definitions
-├── normalize.ts                      # Data transformation (uses ModeService)
-├── controller.ts                     # State management (uses ServiceContainer)
-├── config.ts                         # Configuration parsing
-├── TrackerWidget.svelte              # Main component (uses ServiceContainer)
-├── StopFinder.svelte                 # Reusable stop finder component
-└── [other existing files...]
-```
-
-## Refactoring Guidelines
-
-### When Adding New Features
-
-1. **New Transport Type** → Implement `RealtimeTransport` interface in `services/transport.ts`
-2. **New Data Source** → Implement `TransitDataRepository` interface in `services/repositories.ts`
-3. **New Styling Rule** → Use `ModeService.addModeRule()` or extend `MBTAModeDetector`
-4. **New UI Component** → Use `ServiceContainer` via dependency injection
-
-### When Testing
-
-1. Create `TestServiceContainer` with mocked services
-2. Pass container to component/function being tested
-3. No need to mock HTTP, WebSocket, or other infrastructure
-
-```typescript
-import { TestServiceContainer } from '$lib/tracker/services';
-import { createTrackerController } from '$lib/tracker/controller';
-
-describe('TrackerController', () => {
-  it('should handle vehicle updates', async () => {
-    const mockTransport = {
-      on: vi.fn(),
-      connect: vi.fn().mockResolvedValue(undefined),
-      disconnect: vi.fn(),
-      status: () => 'open',
-      lastOpenedAt: () => Date.now()
-    };
-
-    const testContainer = new TestServiceContainer({
-      getTransport: () => mockTransport as any
-    });
-
-    const controller = createTrackerController(config, testContainer);
-    // Test logic here
-  });
-});
-```
-
-### Naming Conventions
-
-- **Interfaces** - PascalCase, verb pattern or noun pattern
-  - `RealtimeTransport`, `ModeDetector`, `TransitDataRepository`
-- **Implementations** - PascalCase with descriptive name
-  - `WebSocketTransport`, `MBTARepository`, `MBTAModeDetector`
-- **Config objects** - lowercase, -Config suffix
-  - `transportConfig`, `containerConfig`
-
-## Migration Checklist
-
-✅ **Phase 1 - Transport Layer**
-- [x] Extract `RealtimeTransport` interface
-- [x] Implement `WebSocketTransport` and `SSETransport`
-- [x] Update `TrackerController` to use transport interface
-
-❌ **Phase 2 - Repository Layer** (Next)
-- [ ] Migrate API calls to `MBTARepository`
-- [ ] Update `normalize.ts` to use mode-service
-- [ ] Update `TrackerWidget` to use repositories
-
-❌ **Phase 3 - Service Container Integration** (Next)
-- [ ] Inject container throughout app
-- [ ] Update tests to use `TestServiceContainer`
-- [ ] Remove global singletons
-
-❌ **Phase 4 - UI Component Modularization** (Next)
-- [ ] Extract map controls into pluggable components
-- [ ] Separate stop enrichment logic
-- [ ] Make components reusable and testable
-
-## SOLID Principles Applied
-
-| Principle | How It's Applied |
-|-----------|------------------|
-| **S**ingle Responsibility | Each service does one thing (Transport, Repository, ModeDetection) |
-| **O**pen/Closed | Open for extension (add rules, transports), closed for modification |
-| **L**iskov Substitution | All `RealtimeTransport` implementations are interchangeable |
-| **I**nterface Segregation | Small, focused interfaces (not one god interface) |
-| **D**ependency Inversion | Depend on abstractions, not concrete classes |
-
-## Performance Considerations
-
-- **Lazy Loading** - Services created on-demand
-- **Caching** - Repository caches responses (24h default)
-- **Backoff Strategy** - Exponential backoff with jitter for reconnection
-- **Event Debouncing** - Transport batches messages
-
-## Security Considerations
-
-- All external API calls go through Repository layer
-- HTTPS/WSS enforced in production
-- Nominatim timeout prevents stalls
-- CORS handled by browser
-
-## Extension Points
-
-### Add Custom Transport
-
-```typescript
-import { BaseTransport } from '$lib/tracker/services';
-
-export class PollingTransport extends BaseTransport {
-  private pollTimer: number | null = null;
-
-  async connect(): Promise<void> {
-    // Your polling logic
-  }
-
-  disconnect(): void {
-    // Your cleanup
-  }
-}
-
-// Use it
-const transport = new PollingTransport({
-  url: 'https://api.example.com/vehicles',
-  retryMs: 5000
-});
-```
-
-### Add Mode Detection Rule
-
-```typescript
-import { ModeService } from '$lib/tracker/services';
-
-// For custom local transit system
-ModeService.addModeRule((data) => {
-  if (data.routeId === 'express-1' || data.routeLabel?.includes('Express')) {
-    return 'bus';
-  }
-  if (data.routeId === 'light-rail-1') {
-    return 'subway'; // Same as light rail
-  }
-  return null; // Let other rules handle it
-}, 600); // Medium priority
-```
-
-### Add Custom Repository
-
-```typescript
-import type { TransitDataRepository } from '$lib/tracker/services';
-
-class CustomDataRepository implements TransitDataRepository {
-  async getAllStops() {
-    // Your API calls
-  }
-  // ...implement interface
-}
-
-const container = new DefaultServiceContainer({
-  // Container will use your repository
-});
-```
-
-## Documentation Files
-
-- **This file** - Architecture overview and patterns
-- `services/index.ts` - Clean module exports
-- `services/transport.ts` - Transport layer JSDoc
-- `services/repositories.ts` - Data layer JSDoc
-- `services/mode-service.ts` - Mode/styling JSDoc
-- `services/container.ts` - DI container JSDoc
-
-## Next Steps
-
-1. Migrate `normalize.ts` to use `ModeService`
-2. Refactor `TrackerWidget.svelte` to accept `ServiceContainer`
-3. Create example test files showing new patterns
-4. Update backend server to use transport abstraction concepts
-5. Add Composite Pattern for stop enrichment
-
----
-
-**Maintainers:** Ensure all new code follows these patterns. When reviewing PRs, check for:
-- Service dependencies properly injected
-- No mixed concerns in one module
-- Interfaces used instead of concrete classes
-- Tests using `TestServiceContainer`
+In practice:
+
+- the search page queries the API server
+- the tracker widget connects to realtime transport
+- route and stop cards show compact summaries first
+- deeper details are revealed through user action
+
+## Current UX Principles
+
+The codebase is optimized around these behaviors:
+
+- search first, map second
+- compact by default
+- honest about freshness and connection state
+- clear separation between summary and detail
+- responsive layout across desktop and mobile
+
+## Public Interface for Embeds
+
+The tracker widget can be mounted in three ways:
+
+- directly in Svelte
+- by selector
+- automatically on elements with `data-mbta-tracker`
+
+This makes the widget suitable for:
+
+- the main app
+- embedded iframes
+- script-tag integration
+
+## Design Patterns In Use
+
+### Adapter
+
+Used for realtime transport implementations in `services/transport.ts`.
+
+### Repository
+
+Used for MBTA, geocoding, and local persistence access.
+
+### Dependency Injection
+
+Used through `ServiceContainer` and the test container.
+
+### Composite
+
+Used in the stop enrichment pipeline.
+
+### Composition Root
+
+Used in `apps/server/src/api-server.ts` to assemble the API server from discrete route and service modules.
+
+## What This Architecture Is Not
+
+This project is not a fully abstracted enterprise framework.
+
+It still contains direct UI logic, route-level API wiring, and feature-specific modules where that keeps the code simpler and more understandable.
+
+The architecture is intentionally pragmatic:
+
+- modular where reuse and testing matter
+- direct where the code is already small and clear
+- honest about what is implemented today
+
+## Notes For Contributors
+
+- Prefer adding behavior to the existing service and route modules before creating new abstractions.
+- Keep widget-specific logic inside `apps/web/src/lib/tracker/`.
+- Keep API orchestration inside `apps/server/src/`.
+- Keep shared polling contracts in `packages/transit-core/`.
+- Use `doc/STATUS.md` for current implementation status and `doc/IMPLEMENTATION_START_HERE.md` for doc navigation.
+
+## Accuracy Notes
+
+This document reflects the current repository state as of the latest pass.
+
+- The local API server is Node.js-based, not Bun-based.
+- The current server composition root is `apps/server/src/api-server.ts`.
+- The tracker widget lives under `apps/web/src/lib/tracker/`.
+- The architecture includes the search-first homepage, embeddable widget, and Cloudflare Worker runtime.
+

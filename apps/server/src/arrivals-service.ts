@@ -67,6 +67,8 @@ interface MBTAVehicle {
     label?: string;
     latitude?: number;
     longitude?: number;
+    occupancy_status?: string;
+    current_status?: string;
   };
 }
 
@@ -134,6 +136,50 @@ const modeMap: Record<number, string> = {
   11: 'trolleybus',
 };
 
+function occupancyStatusToPercent(status?: string): number | null {
+  if (!status) {
+    return null;
+  }
+
+  const normalized = status.toLowerCase();
+  if (normalized.includes('crushed') || normalized.includes('full')) {
+    return 96;
+  }
+  if (normalized.includes('standing room only')) {
+    return 89;
+  }
+  if (normalized.includes('few seats available')) {
+    return 68;
+  }
+  if (normalized.includes('many seats available')) {
+    return 32;
+  }
+  if (normalized.includes('empty')) {
+    return 12;
+  }
+  if (normalized.includes('not available')) {
+    return null;
+  }
+
+  return null;
+}
+
+function blendCrowdingSignals(heuristic: number, liveSignals: number[]): { occupancyPercent: number; confidence: number } {
+  if (liveSignals.length === 0) {
+    return { occupancyPercent: heuristic, confidence: 0.48 };
+  }
+
+  const liveAverage = liveSignals.reduce((sum, value) => sum + value, 0) / liveSignals.length;
+  const weight = Math.min(0.42, 0.16 + liveSignals.length * 0.06);
+  const occupancyPercent = Math.round(heuristic * (1 - weight) + liveAverage * weight);
+  const confidence = Math.max(0.54, Math.min(0.94, 0.52 + liveSignals.length * 0.07));
+
+  return {
+    occupancyPercent,
+    confidence
+  };
+}
+
 export class ArrivalsService {
   private readonly forecastHorizons: Array<5 | 15 | 30 | 60> = [5, 15, 30, 60];
 
@@ -160,7 +206,7 @@ export class ArrivalsService {
           'fields[prediction]': 'arrival_time,departure_time,schedule_relationship,status',
           'fields[trip]': 'headsign,direction_id',
           'fields[route]': 'number,name,type,direction_names',
-          'fields[vehicle]': 'label,latitude,longitude',
+          'fields[vehicle]': 'label,latitude,longitude,occupancy_status,current_status',
           'sort': 'arrival_time',
           'page[limit]': 100,
         },
@@ -208,6 +254,7 @@ export class ArrivalsService {
           const trip = tripsMap.get(tripId);
           const route = routesMap.get(routeId);
           const vehicle = vehicleId ? vehiclesMap.get(vehicleId) : null;
+          const liveCrowding = occupancyStatusToPercent(vehicle?.attributes.occupancy_status);
 
           if (!trip || !route) {
             continue;
@@ -232,6 +279,8 @@ export class ArrivalsService {
             is_live: !!vehicle,
             platform: undefined,
             accessibility_icons: [],
+            crowding_percent: liveCrowding ?? undefined,
+            occupancy_status: vehicle?.attributes.occupancy_status,
           };
 
           if (trip.attributes.direction_id === 0) {
@@ -274,7 +323,6 @@ export class ArrivalsService {
     const params: Record<string, string> = {
       'filter[route]': routeId,
       'fields[stop]': 'name,latitude,longitude,wheelchair_boarding',
-      'sort': 'name',
       'page[limit]': '300'
     };
 
@@ -282,7 +330,7 @@ export class ArrivalsService {
       params['filter[direction_id]'] = String(directionId);
     }
 
-    const [stopsResponse, vehiclesResponse] = await Promise.all([
+    const [stopsResponse, vehiclesResponse, predictionResponse] = await Promise.all([
       axios.get(`${MBTA_API_BASE}/stops`, { params, timeout: 5000 }),
       axios.get(`${MBTA_API_BASE}/vehicles`, {
         params: {
@@ -290,11 +338,36 @@ export class ArrivalsService {
           'fields[vehicle]': 'route_id,trip_id,label'
         },
         timeout: 5000
+      }),
+      axios.get(`${MBTA_API_BASE}/predictions`, {
+        params: {
+          'filter[route]': routeId,
+          ...(typeof directionId === 'number' ? { 'filter[direction_id]': String(directionId) } : {}),
+          'fields[prediction]': 'stop_sequence',
+          'fields[stop]': 'name',
+          sort: 'stop_sequence',
+          'page[limit]': '500'
+        },
+        timeout: 5000
       })
     ]);
 
     const stops: MBTAStopData[] = stopsResponse.data.data || [];
     const vehicles: MBTAVehicle[] = vehiclesResponse.data.data || [];
+    const predictions: MBTAPrediction[] = predictionResponse.data.data || [];
+    const stopSequenceById = new Map<string, number>();
+    for (const prediction of predictions) {
+      const stopId = prediction.relationships?.stop?.data?.id;
+      const sequence = prediction.attributes?.stop_sequence;
+      if (!stopId || typeof sequence !== 'number') {
+        continue;
+      }
+
+      const existing = stopSequenceById.get(stopId);
+      if (existing === undefined || sequence < existing) {
+        stopSequenceById.set(stopId, sequence);
+      }
+    }
 
     const vehicleIds = vehicles
       .map((vehicle) => vehicle.id)
@@ -302,6 +375,24 @@ export class ArrivalsService {
 
     const stopsOut: RouteStopInfo[] = stops
       .filter((stop) => typeof stop.attributes.latitude === 'number' && typeof stop.attributes.longitude === 'number')
+      .sort((a, b) => {
+        const seqA = stopSequenceById.get(a.id);
+        const seqB = stopSequenceById.get(b.id);
+
+        if (typeof seqA === 'number' && typeof seqB === 'number' && seqA !== seqB) {
+          return seqA - seqB;
+        }
+
+        if (typeof seqA === 'number') {
+          return -1;
+        }
+
+        if (typeof seqB === 'number') {
+          return 1;
+        }
+
+        return a.attributes.name.localeCompare(b.attributes.name);
+      })
       .map((stop, index) => ({
         stop_id: stop.id,
         stop_name: stop.attributes.name,
@@ -423,22 +514,26 @@ export class ArrivalsService {
     const allArrivals = [...arrivals.inbound, ...arrivals.outbound];
     const routeDiversity = new Set(allArrivals.map((arrival) => arrival.route_id)).size;
     const now = Date.now();
+    const liveOccupancySignals = allArrivals
+      .map((arrival) => arrival.crowding_percent)
+      .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
 
     const timeline: CrowdingForecastPoint[] = this.forecastHorizons.map((horizon) => {
       const thresholdSeconds = horizon * 60;
       const arrivalsWithinHorizon = allArrivals.filter((arrival) => arrival.eta_seconds <= thresholdSeconds).length;
-      const occupancyPercent = estimateCrowdingPercent({
+      const heuristic = estimateCrowdingPercent({
         baseKey: stopId,
         arrivalsWithinHorizon,
         horizonMinutes: horizon,
         routeDiversity,
         timestampMs: now
       });
+      const blended = blendCrowdingSignals(heuristic, liveOccupancySignals.slice(0, 6));
 
       return {
         horizon_minutes: horizon,
-        occupancy_percent: occupancyPercent,
-        confidence: Math.max(0.35, Math.min(0.92, 0.48 + arrivalsWithinHorizon * 0.06 + routeDiversity * 0.03)),
+        occupancy_percent: blended.occupancyPercent,
+        confidence: Math.max(0.35, Math.min(0.95, blended.confidence + arrivalsWithinHorizon * 0.02 + routeDiversity * 0.02)),
         sample_size: arrivalsWithinHorizon
       };
     });
@@ -454,22 +549,29 @@ export class ArrivalsService {
   async getRouteCrowdingForecast(routeId: string, directionId?: number): Promise<RouteCrowdingForecastResponse> {
     const routeStops = await this.getRouteStops(routeId, directionId);
     const now = Date.now();
+    const liveRoutePressure = await this.fetchRouteOccupancyPressure(routeId, directionId);
 
     const stops: RouteCrowdingStopForecast[] = routeStops.stops.slice(0, 30).map((stop) => {
       const routeDiversity = Math.max(1, stop.upcoming_vehicle_ids.length);
       const timeline: CrowdingForecastPoint[] = this.forecastHorizons.map((horizon) => {
         const arrivalsWithinHorizon = Math.max(1, Math.round(routeDiversity * (1 + (60 - horizon) / 120)));
+        const heuristic = estimateCrowdingPercent({
+          baseKey: `${routeId}:${stop.stop_id}`,
+          arrivalsWithinHorizon,
+          horizonMinutes: horizon,
+          routeDiversity,
+          timestampMs: now
+        });
+        const occupancyPercent =
+          liveRoutePressure === null ? heuristic : Math.round(heuristic * 0.65 + liveRoutePressure * 0.35);
 
         return {
           horizon_minutes: horizon,
-          occupancy_percent: estimateCrowdingPercent({
-            baseKey: `${routeId}:${stop.stop_id}`,
-            arrivalsWithinHorizon,
-            horizonMinutes: horizon,
-            routeDiversity,
-            timestampMs: now
-          }),
-          confidence: Math.max(0.32, Math.min(0.88, 0.4 + routeDiversity * 0.08)),
+          occupancy_percent: occupancyPercent,
+          confidence: Math.max(
+            0.32,
+            Math.min(0.92, 0.4 + routeDiversity * 0.08 + (liveRoutePressure === null ? 0 : 0.12))
+          ),
           sample_size: arrivalsWithinHorizon
         };
       });
@@ -514,7 +616,9 @@ export class ArrivalsService {
     const options = arrivals.slice(0, 8).map((arrival) => {
       const etaMinutes = Math.max(1, Math.round(arrival.eta_seconds / 60));
       const delayMinutes = Math.max(0, Math.round(arrival.delay_seconds / 60));
-      const crowdingPercent = crowdingByHorizon.get(nearestHorizon(etaMinutes)) || 45;
+      const crowdingPercent = arrival.crowding_percent
+        ?? crowdingByHorizon.get(nearestHorizon(etaMinutes))
+        ?? 45;
       const transferCount = 0;
 
       return {
@@ -584,6 +688,33 @@ export class ArrivalsService {
     } catch (error) {
       console.error('[arrivals] Error fetching alerts:', error);
       return [];
+    }
+  }
+
+  private async fetchRouteOccupancyPressure(routeId: string, directionId?: number): Promise<number | null> {
+    try {
+      const response = await axios.get(`${MBTA_API_BASE}/vehicles`, {
+        params: {
+          'filter[route]': routeId,
+          ...(typeof directionId === 'number' ? { 'filter[direction_id]': String(directionId) } : {}),
+          'fields[vehicle]': 'occupancy_status,current_status',
+          'page[limit]': 100
+        },
+        timeout: 5000
+      });
+
+      const vehicles: MBTAVehicle[] = response.data.data || [];
+      const liveSignals = vehicles
+        .map((vehicle) => occupancyStatusToPercent(vehicle.attributes.occupancy_status))
+        .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+
+      if (liveSignals.length === 0) {
+        return null;
+      }
+
+      return Math.round(liveSignals.reduce((sum, value) => sum + value, 0) / liveSignals.length);
+    } catch {
+      return null;
     }
   }
 }

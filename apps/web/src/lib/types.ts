@@ -88,6 +88,8 @@ export interface ArrivalForecast {
 	is_live: boolean;
 	platform?: string;
 	accessibility_icons?: string[];
+	crowding_percent?: number;
+	occupancy_status?: string;
 }
 
 export interface StopArrivals {

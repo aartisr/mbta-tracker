@@ -91,6 +91,8 @@ export interface ArrivalForecast {
   is_live: boolean; // Has realtime data
   platform?: string;
   accessibility_icons?: string[];
+  crowding_percent?: number;
+  occupancy_status?: string;
 }
 
 export interface StopArrivals {

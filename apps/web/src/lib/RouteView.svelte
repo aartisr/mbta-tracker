@@ -156,7 +156,7 @@
 		{#if routeCrowding}
 			<p class="route-crowding-note">
 				<span class="route-crowding-pill route-crowding-horizon">15 min horizon</span>
-				<span class="route-crowding-pill route-crowding-source">Source: MBTA arrivals + heuristic model</span>
+				<span class="route-crowding-pill route-crowding-source">Source: MBTA arrivals + live vehicle signal</span>
 				<span class="route-crowding-pill route-crowding-trust">Relative guide, not exact occupancy</span>
 			</p>
 		{/if}

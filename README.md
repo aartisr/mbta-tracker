@@ -2,15 +2,33 @@
 
 Realtime MBTA vehicle tracker with a configurable embeddable widget.
 
+This project is a practical, user-first transit tool and a personal thank-you to MBTA for the role it has played in Boston life.
+
+## Why people use it
+
+- Find the next train, bus, or stop fast with a search-first interface.
+- See compact real-time arrivals, routes, crowding, and service context without digging through clutter.
+- Use it comfortably on desktop, laptop, and mobile.
+- Embed the tracker in another site with a single widget script.
+- See honest connection and freshness states so the app stays trustworthy.
+
+## What it does well
+
+- Search by route, stop, address, vehicle, or landmark.
+- Show arrivals, route sequences, vehicle details, and crowding forecasts in compact cards.
+- Keep details collapsed by default so the page stays quick to scan.
+- Support both a local Node.js backend and a Cloudflare Worker deployment.
+- Keep the implementation modular so features stay maintainable and testable.
+
 Stack:
 
 - Frontend: SvelteKit + MapLibre (`apps/web`)
-- Local realtime backend: Bun + WebSocket + GTFS protobuf polling (`apps/server`)
+- Local realtime backend: Node.js + WebSocket + GTFS protobuf polling (`apps/server`)
 - Cloud backend: Cloudflare Worker + Durable Object fanout (`apps/realtime-worker`)
 
 Runtime options:
 
-- Bun WebSocket server (`apps/server`) for local/dev use.
+- Node.js WebSocket server (`apps/server`) for local/dev use.
 - Cloudflare Worker + Durable Object (`apps/realtime-worker`) for edge deployment.
 
 ## Architecture Overview
@@ -32,16 +50,17 @@ Core patterns in use:
 
 See [ARCHITECTURE.md](/Users/rraviku2/aarti/mbta-tracker/ARCHITECTURE.md) for the detailed module breakdown and design rationale.
 
+Current implementation notes and the compact project status live in [`doc/STATUS.md`](/Users/rraviku2/aarti/mbta-tracker/doc/STATUS.md), with the start-here guide in [`doc/IMPLEMENTATION_START_HERE.md`](/Users/rraviku2/aarti/mbta-tracker/doc/IMPLEMENTATION_START_HERE.md).
+
 ## Repo Layout
 
 - `apps/web`: SvelteKit UI with `TrackerWidget` component and Cloudflare adapter.
-- `apps/server`: Bun-based polling + WebSocket server on port `8080`.
+- `apps/server`: Node-based polling + WebSocket server on port `8080`.
 - `apps/realtime-worker`: Cloudflare Worker realtime backend (`/ws`) with Durable Object fanout.
 
 ## Prerequisites
 
 - Node.js 18+ (for npm tooling).
-- Bun 1.3+ (for local Bun server + web scripts).
 - npm (used for installs in this repo and Wrangler tooling).
 - Cloudflare account + Wrangler auth for deployment.
 
@@ -53,15 +72,15 @@ From repo root:
 npm install
 cd apps/web && npm install
 cd ../realtime-worker && npm install
-cd ../server && bun install
+cd ../server && npm install
 ```
 
 ## Root Scripts
 
 From repo root (`/Users/rraviku2/aarti/mbta-tracker`):
 
-- `npm run dev`: start Bun server + web together.
-- `npm run dev:server`: start Bun server only.
+- `npm run dev`: start Node server + web together.
+- `npm run dev:server`: start Node server only.
 - `npm run dev:web`: start web only.
 - `npm run dev:cf`: start Cloudflare worker + web together (web auto-uses `ws://127.0.0.1:8787/ws`).
 - `npm run test`: run the web Vitest suite.
@@ -199,20 +218,20 @@ Optional script `data-*` attributes:
 
 ## Local Development Options
 
-### Option A: Bun server + web (non-Cloudflare)
+### Option A: Node server + web (non-Cloudflare)
 
 Terminal 1:
 
 ```bash
 cd apps/server
-bun run index.ts
+npm run dev
 ```
 
 Terminal 2:
 
 ```bash
 cd apps/web
-bun run dev
+npm run dev
 ```
 
 Or from root:
@@ -221,7 +240,7 @@ Or from root:
 npm run dev
 ```
 
-When running web locally with the Bun backend, no extra env var is required; it auto-targets `ws://localhost:8080`.
+When running web locally with the Node backend, no extra env var is required; it auto-targets `ws://localhost:8080`.
 
 ### Option B: Cloudflare-style local runtime
 
@@ -286,22 +305,6 @@ npm run dev:stop
 
 Then restart with `npm run dev` or `npm run dev:cf`.
 
-### `bun run dev` from repo root says script not found
-
-Root scripts are npm scripts. Use:
-
-```bash
-cd /Users/rraviku2/aarti/mbta-tracker
-npm run dev
-```
-
-If you want web-only Bun dev, run from `apps/web`:
-
-```bash
-cd /Users/rraviku2/aarti/mbta-tracker/apps/web
-bun run dev
-```
-
 ### Package install fails with internal registry errors (404/connection)
 
 Symptoms include failures resolving packages from Artifactory.
@@ -317,7 +320,7 @@ This repo expects internal registry config in:
 - `/Users/rraviku2/aarti/mbta-tracker/.npmrc`
 - `/Users/rraviku2/aarti/mbta-tracker/apps/server/.npmrc`
 
-If Bun install fails but npm works, use npm to bootstrap dependencies and continue running scripts normally.
+Use `npm install` to bootstrap dependencies and continue running scripts normally.
 
 ### Wrangler auth/deploy issues
 
@@ -348,7 +351,7 @@ Checklist:
 Most common causes:
 
 1. Port `8080` is occupied by another process.
-2. Bun server is not running.
+2. Node server is not running.
 
 Quick fix:
 
@@ -371,6 +374,30 @@ curl https://<worker>.<subdomain>.workers.dev/health
 ```
 
 1. Confirm MBTA upstream feed is reachable from worker runtime.
+
+## Ownership And Credits
+
+- Repository owner and research lead: Aarti S Ravikumar
+- Copyright: Copyright (c) 2026 Aarti S Ravikumar
+
+This repository is a personal expression of gratitude to MBTA.
+The work here is meant to honor the role MBTA has played in making Boston feel connected,
+steady, and humane for the people who depend on it.
+
+Credits and acknowledgments:
+
+- MBTA for transit data, public service feeds, and the lived transit experience that inspired this work.
+- OpenStreetMap and Nominatim for geocoding support.
+- SvelteKit, Svelte, Vite, TypeScript, and MapLibre for the frontend stack.
+- Node.js, Express, WebSocket, and `tsx` for the local server runtime.
+- Cloudflare for edge hosting and Durable Object support.
+- The open-source maintainers, reviewers, and contributors who make the underlying ecosystem work.
+
+If a contributor or source is missing here, please add them in a follow-up change so the credit list stays complete.
+
+Personal note from Aarti S Ravikumar:
+
+> I grew up loving trains beside my parents, my hands against the window, believing every journey meant something-and in Boston, the MBTA quietly gave that feeling back to me when I needed it most. It became my lifeline, holding me through uncertain days and reminding me, without words, that I belong. This repo is my thank-you: a small way to give back to the system that carried me, and a hope that everyone, everywhere, gets to feel that same gentle certainty of being carried, connected, and at home.
 
 ## Contributing
 

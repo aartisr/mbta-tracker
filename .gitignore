@@ -1,6 +1,26 @@
+# OS / filesystem noise
 .DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+
+# Editor settings
+.idea/
+.fleet/
+.history/
+
+# Dependencies
 node_modules/
 **/node_modules/
+.pnpm-store/
+.npm/
+.yarn/
+.yarn-cache/
+.pnp.*
+
+# Build output and caches
 .svelte-kit/
 **/.svelte-kit/
 dist/
@@ -9,15 +29,33 @@ build/
 **/build/
 coverage/
 **/coverage/
+.cache/
+**/.cache/
+.parcel-cache/
+.tsbuildinfo
+**/*.tsbuildinfo
+.eslintcache
+.stylelintcache
+
+# Framework / deployment tooling
 .vercel/
 **/.vercel/
 .netlify/
 **/.netlify/
 .wrangler/
 **/.wrangler/
+
+# Generated widget / release artifacts
 dist-widget/
 **/dist-widget/
 release/widget/
+
+# Local environment and logs
 .env
 .env.*
+!.env.example
 *.log
+*.pid
+*.seed
+*.tgz
+.mbta-tracker-state/

@@ -341,7 +341,7 @@
 						{/each}
 					</div>
 					<p class="crowding-explainer">
-						Source: live MBTA arrivals, route variety, and time of day. Use this as a relative guide, not an exact occupancy count.
+						Source: live MBTA arrivals, vehicle occupancy when available, route variety, and time of day. Use this as a relative guide, not an exact occupancy count.
 					</p>
 				</section>
 			{:else if crowdingError}
@@ -440,7 +440,7 @@
 						{#each arrivals.inbound as arrival (arrival.trip_id)}
 							<ArrivalCard
 								{arrival}
-								crowdingPercent={crowdingForEta(arrival.eta_seconds)}
+								crowdingPercent={arrival.crowding_percent ?? crowdingForEta(arrival.eta_seconds)}
 								onClick={() => handleArrivalSelected(arrival)}
 							/>
 						{/each}
@@ -465,7 +465,7 @@
 						{#each arrivals.outbound as arrival (arrival.trip_id)}
 							<ArrivalCard
 								{arrival}
-								crowdingPercent={crowdingForEta(arrival.eta_seconds)}
+								crowdingPercent={arrival.crowding_percent ?? crowdingForEta(arrival.eta_seconds)}
 								onClick={() => handleArrivalSelected(arrival)}
 							/>
 						{/each}

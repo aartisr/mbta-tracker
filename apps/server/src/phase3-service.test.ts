@@ -44,6 +44,6 @@ describe('Phase3Service', () => {
     const after = service.getPrivacyDashboard('session-c');
     expect(after.opted_in).toBe(false);
     expect(after.anonymize_after_days).toBe(45);
-    expect(after.stored_commute_count).toBeGreaterThan(0);
+    expect(after.stored_commute_count).toBe(0);
   });
 });

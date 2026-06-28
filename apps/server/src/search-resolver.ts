@@ -11,7 +11,6 @@ import type {
   VehicleResult,
   AddressResult,
   LandmarkResult,
-  QueryType,
   SearchQuery,
 } from './types';
 
@@ -69,16 +68,50 @@ const modeMap: Record<number, string> = {
   11: 'trolleybus',
 };
 
+function normalizeAutocompleteValue(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[-_/]/g, ' ')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ');
+}
+
+function buildAutocompletePrefixes(value: string): string[] {
+  const normalized = normalizeAutocompleteValue(value);
+  if (!normalized) {
+    return [];
+  }
+
+  const prefixes = new Set<string>();
+  const tokens = normalized.split(' ').filter(Boolean);
+
+  const addPrefixFamily = (segment: string) => {
+    const trimmed = segment.trim();
+    const maxLength = Math.min(trimmed.length, 32);
+    for (let i = 1; i <= maxLength; i += 1) {
+      prefixes.add(trimmed.slice(0, i));
+    }
+  };
+
+  addPrefixFamily(normalized);
+  for (const token of tokens) {
+    addPrefixFamily(token);
+  }
+
+  return Array.from(prefixes);
+}
+
 export class SearchResolverService {
   private routeCache = new Map<string, RouteResult>();
   private stopCache = new Map<string, StopResult>();
+  private routeAutocompleteIndex = new Map<string, Set<string>>();
+  private stopAutocompleteIndex = new Map<string, Set<string>>();
   private addressSuggestionCache = new Map<string, { ts: number; results: AddressResult[] }>();
   private lastCacheRefresh = 0;
   private cacheRefreshInterval = 3600000; // 1 hour
 
   async resolve(query: SearchQuery): Promise<SearchResult[]> {
-    const startTime = Date.now();
-
     try {
       // Refresh caches periodically
       if (Date.now() - this.lastCacheRefresh > this.cacheRefreshInterval) {
@@ -114,24 +147,21 @@ export class SearchResolverService {
     try {
       await this.ensureStopCacheLoaded();
 
-      const stopMatches = Array.from(this.stopCache.values())
-        .filter(stop => {
-          const name = (stop.stop_name || '').toLowerCase();
-          const code = (stop.stop_code || '').toLowerCase();
-          return name.includes(query) || code.includes(query);
-        })
-        .sort((a, b) => this.scoreStopAutocomplete(b, query) - this.scoreStopAutocomplete(a, query))
-        .slice(0, Math.max(0, limit - 3));
+      const stopMatches = this.collectAutocompleteResults(
+        this.stopAutocompleteIndex,
+        this.stopCache,
+        query,
+        Math.max(0, limit - 3),
+        (stop) => this.scoreStopAutocomplete(stop, query)
+      );
 
-      const routeMatches = Array.from(this.routeCache.values())
-        .filter(route => {
-          const id = (route.route_id || '').toLowerCase();
-          const num = (route.route_number || '').toLowerCase();
-          const name = (route.route_name || '').toLowerCase();
-          return id.includes(query) || num.includes(query) || name.includes(query);
-        })
-        .sort((a, b) => this.scoreRouteAutocomplete(b, query) - this.scoreRouteAutocomplete(a, query))
-        .slice(0, 4);
+      const routeMatches = this.collectAutocompleteResults(
+        this.routeAutocompleteIndex,
+        this.routeCache,
+        query,
+        4,
+        (route) => this.scoreRouteAutocomplete(route, query)
+      );
 
       const results: SearchResult[] = [...stopMatches, ...routeMatches];
 
@@ -211,6 +241,7 @@ export class SearchResolverService {
         };
         results.push(result);
         this.routeCache.set(route.id, result);
+        this.indexRouteAutocomplete(result);
       }
     } catch (error) {
       console.error('[resolver] Error fetching routes:', error);
@@ -272,6 +303,7 @@ export class SearchResolverService {
         };
         results.push(result);
         this.stopCache.set(stop.id, result);
+        this.indexStopAutocomplete(result);
       }
     } catch (error) {
       console.error('[resolver] Error fetching stops:', error);
@@ -427,37 +459,6 @@ export class SearchResolverService {
     };
 
     return [result];
-  }
-
-  private async findNearbyStops(latitude: number, longitude: number, radiusKm: number): Promise<StopResult[]> {
-    try {
-      const response = await axios.get(`${MBTA_API_BASE}/stops`, {
-        params: {
-          'filter[latitude]': latitude,
-          'filter[longitude]': longitude,
-          'filter[radius]': radiusKm * 1000, // Convert km to meters
-          'fields[stop]': 'name,code,latitude,longitude,accessibility',
-          limit: 10,
-        },
-        timeout: 5000,
-      });
-
-      const stops: MBTAStop[] = response.data.data;
-
-      return stops.map(stop => ({
-        type: 'stop' as const,
-        stop_id: stop.id,
-        stop_name: stop.attributes.name,
-        stop_code: stop.attributes.code,
-        latitude: stop.attributes.latitude,
-        longitude: stop.attributes.longitude,
-        accessibility_features: stop.attributes.accessibility,
-        confidence: 0.9,
-      }));
-    } catch (error) {
-      console.error('[resolver] Error finding nearby stops:', error);
-      return [];
-    }
   }
 
   private findNearbyStopsFromCache(latitude: number, longitude: number, radiusKm: number, limit: number): StopResult[] {
@@ -656,8 +657,86 @@ export class SearchResolverService {
     return score;
   }
 
+  private indexRouteAutocomplete(route: RouteResult): void {
+    const values = [route.route_id, route.route_number, route.route_name];
+
+    for (const value of values) {
+      for (const prefix of buildAutocompletePrefixes(value)) {
+        const bucket = this.routeAutocompleteIndex.get(prefix) || new Set<string>();
+        bucket.add(route.route_id);
+        this.routeAutocompleteIndex.set(prefix, bucket);
+      }
+    }
+  }
+
+  private indexStopAutocomplete(stop: StopResult): void {
+    const values = [stop.stop_id, stop.stop_name, stop.stop_code || ''];
+
+    for (const value of values) {
+      if (!value) {
+        continue;
+      }
+
+      for (const prefix of buildAutocompletePrefixes(value)) {
+        const bucket = this.stopAutocompleteIndex.get(prefix) || new Set<string>();
+        bucket.add(stop.stop_id);
+        this.stopAutocompleteIndex.set(prefix, bucket);
+      }
+    }
+  }
+
+  private collectAutocompleteResults<T extends SearchResult>(
+    index: Map<string, Set<string>>,
+    cache: Map<string, T>,
+    query: string,
+    limit: number,
+    score: (result: T) => number
+  ): T[] {
+    if (limit <= 0) {
+      return [];
+    }
+
+    const normalizedQuery = normalizeAutocompleteValue(query);
+    const indexedIds = index.get(normalizedQuery);
+
+    const indexedResults = indexedIds
+      ? Array.from(indexedIds)
+        .map((id) => cache.get(id))
+        .filter((value): value is T => value !== undefined)
+      : [];
+
+    const source = indexedResults.length > 0
+      ? indexedResults
+      : Array.from(cache.values()).filter((result) => {
+        if (result.type === 'route') {
+          const route = result as RouteResult;
+          return (
+            normalizeAutocompleteValue(route.route_id).includes(normalizedQuery)
+            || normalizeAutocompleteValue(route.route_number).includes(normalizedQuery)
+            || normalizeAutocompleteValue(route.route_name).includes(normalizedQuery)
+          );
+        }
+
+        const stop = result as StopResult;
+        return (
+          normalizeAutocompleteValue(stop.stop_id).includes(normalizedQuery)
+          || normalizeAutocompleteValue(stop.stop_name).includes(normalizedQuery)
+          || normalizeAutocompleteValue(stop.stop_code || '').includes(normalizedQuery)
+        );
+      });
+
+    return source
+      .sort((a, b) => score(b) - score(a))
+      .slice(0, limit);
+  }
+
   private async refreshCaches(): Promise<void> {
     try {
+      this.routeCache.clear();
+      this.stopCache.clear();
+      this.routeAutocompleteIndex.clear();
+      this.stopAutocompleteIndex.clear();
+
       // Fetch all routes
       const routeResponse = await axios.get(`${MBTA_API_BASE}/routes`, {
         params: {
@@ -682,6 +761,7 @@ export class SearchResolverService {
           direction_names: route.attributes.direction_names || [],
           confidence: 0.95,
         });
+        this.indexRouteAutocomplete(this.routeCache.get(route.id)!);
       }
 
       // Fetch major stops
@@ -707,6 +787,7 @@ export class SearchResolverService {
           parent_stop_id: stop.attributes.parent_station,
           confidence: 0.95,
         });
+        this.indexStopAutocomplete(this.stopCache.get(stop.id)!);
       }
 
       this.lastCacheRefresh = Date.now();
