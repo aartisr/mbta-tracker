@@ -1458,7 +1458,11 @@
   }
 
   .search-container {
-    @apply sticky top-24 z-30 py-3.5 px-4 rounded-[1.35rem] border mx-auto;
+    @apply sticky top-24 z-30 py-3.5 rounded-[1.35rem] border mx-auto;
+    padding-left: 1.45rem;
+    padding-right: 1.05rem;
+    padding-top: 1.05rem;
+    padding-bottom: 0.95rem;
     width: 100%;
     background: rgba(255, 255, 255, 0.93);
     border-color: var(--border-soft);
@@ -1470,11 +1474,12 @@
   }
 
   .search-hero {
-    @apply flex items-start justify-between gap-3 mb-3;
+    @apply flex items-start justify-between gap-4 mb-3;
   }
 
   .search-hero-copy {
     @apply min-w-0;
+    padding-left: 0.1rem;
   }
 
   .search-hero-kicker {
@@ -2202,7 +2207,9 @@
     }
 
     .search-container {
-      @apply px-3 py-3;
+      @apply py-3;
+      padding-left: 0.95rem;
+      padding-right: 0.95rem;
       position: static;
     }
 
