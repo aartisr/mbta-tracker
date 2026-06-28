@@ -5,6 +5,7 @@
 	"scripts": {
 		"dev": "svelte-kit sync && vite dev",
 		"build": "svelte-kit sync && vite build",
+		"pages:build": "npm run build",
 		"build:widget": "vite build --config vite.widget.config.ts",
 		"build:all": "npm run build && npm run build:widget",
 		"preview": "vite preview",

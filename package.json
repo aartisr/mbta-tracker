@@ -18,7 +18,9 @@
     "test:all": "npm --workspace apps/server test && npm --workspace apps/realtime-worker test && npm --workspace apps/web test",
     "dev:stop": "sh ./scripts/dev-stop.sh",
     "dev:health": "sh ./scripts/dev-health.sh",
+    "deploy:cf:pages": "cd apps/web && npm run pages:build",
     "deploy:cf:worker": "cd apps/realtime-worker && npm run deploy",
+    "deploy:cf:worker:dry-run": "cd apps/realtime-worker && npm run deploy:dry-run",
     "release:widget": "sh ./scripts/release-widget.sh",
     "deploy:widget": "sh ./scripts/deploy-widget.sh",
     "embed:widget": "sh ./scripts/widget-embed-snippet.sh"

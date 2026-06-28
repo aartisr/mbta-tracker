@@ -261,9 +261,18 @@ The web client is wired to `ws://127.0.0.1:8787/ws` automatically in this mode.
 
 ### 1. Deploy realtime worker
 
+See [`apps/realtime-worker/README.md`](apps/realtime-worker/README.md) for the worker-specific deploy flow and runtime settings.
+
+Quick deploy:
+
 ```bash
-cd apps/realtime-worker
-npm run deploy
+npm run deploy:cf:worker
+```
+
+Dry-run preflight:
+
+```bash
+npm run deploy:cf:worker:dry-run
 ```
 
 Expected endpoint pattern:
@@ -275,10 +284,19 @@ Expected endpoint pattern:
 Create a Pages project pointing at this repo with:
 
 - Root directory: `apps/web`
-- Build command: `npm run build`
+- Build command: `npm run pages:build`
 - Output directory: `.svelte-kit/cloudflare`
+- Node.js version: `22`
 - Environment variable:
   - `PUBLIC_WS_URL=wss://<worker-name>.<subdomain>.workers.dev/ws`
+
+Recommended Pages settings for this repo:
+
+- Framework preset: `SvelteKit`
+- Build command timeout: leave default unless Cloudflare prompts otherwise
+- Cache: clear once after removing any old private registry settings
+
+If you prefer the repo root scripts, `npm run deploy:cf:pages` runs the same build from the workspace root.
 
 ## Notes
 
@@ -332,7 +350,9 @@ npx wrangler login
 npm run deploy
 ```
 
-If local worker fails due to compatibility date support, update `compatibility_date` in `apps/realtime-worker/wrangler.toml` to a supported date for your installed Wrangler runtime.
+From the repo root, the same deploy path is available as `npm run deploy:cf:worker`.
+
+If local worker fails due to compatibility date support, update `compatibility_date` in [`apps/realtime-worker/wrangler.toml`](apps/realtime-worker/wrangler.toml) to a supported date for your installed Wrangler runtime.
 
 ### WebSocket not connecting after deploy
 
