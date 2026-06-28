@@ -1,0 +1,37 @@
+name: Quality Gates
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run server tests
+        run: npm --workspace apps/server test
+
+      - name: Run worker tests
+        run: npm --workspace apps/realtime-worker test
+
+      - name: Run web tests
+        run: npm --workspace apps/web test
+
+      - name: Run web type-check
+        run: npm --workspace apps/web run check

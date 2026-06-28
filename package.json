@@ -1,0 +1,29 @@
+{
+  "name": "mbta-tracker",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev:start",
+    "dev:start": "sh ./scripts/dev-start.sh",
+    "dev:server": "npm --workspace apps/server run dev",
+    "dev:web": "npm --workspace apps/web run dev",
+    "dev:cf": "concurrently \"cd apps/realtime-worker && npm run dev\" \"cd apps/web && PUBLIC_WS_URL=ws://127.0.0.1:8787/ws npm run dev\"",
+    "test": "npm --workspace apps/web test",
+    "test:web": "npm --workspace apps/web test",
+    "test:server": "npm --workspace apps/server test",
+    "test:worker": "npm --workspace apps/realtime-worker test",
+    "test:all": "npm --workspace apps/server test && npm --workspace apps/realtime-worker test && npm --workspace apps/web test",
+    "dev:stop": "sh ./scripts/dev-stop.sh",
+    "dev:health": "sh ./scripts/dev-health.sh",
+    "deploy:cf:worker": "cd apps/realtime-worker && npm run deploy",
+    "release:widget": "sh ./scripts/release-widget.sh",
+    "deploy:widget": "sh ./scripts/deploy-widget.sh",
+    "embed:widget": "sh ./scripts/widget-embed-snippet.sh"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
