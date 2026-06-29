@@ -4,6 +4,13 @@
   import { DEFAULT_TRACKER_CONFIG } from '$lib/tracker';
   import SearchBox from '$lib/SearchBox.svelte';
   import { apiFetch } from '$lib/api';
+  import Phase3Hub from '$lib/Phase3Hub.svelte';
+  import Phase4Hub from '$lib/Phase4Hub.svelte';
+  import AlertCenter from '$lib/AlertCenter.svelte';
+  import RouteView from '$lib/RouteView.svelte';
+  import StopView from '$lib/StopView.svelte';
+  import TrackerWidget from '$lib/tracker/TrackerWidget.svelte';
+  import VehicleView from '$lib/VehicleView.svelte';
   import type {
     AddressResult,
     RouteResult,
@@ -36,13 +43,6 @@
   let settingsButtonEl: HTMLButtonElement | null = null;
   let showPhase3Hub = false;
   let showPhase4Hub = false;
-  let TrackerWidgetComponent: typeof import('$lib/tracker/TrackerWidget.svelte').default | null = null;
-  let Phase3HubComponent: typeof import('$lib/Phase3Hub.svelte').default | null = null;
-  let Phase4HubComponent: typeof import('$lib/Phase4Hub.svelte').default | null = null;
-  let StopViewComponent: typeof import('$lib/StopView.svelte').default | null = null;
-  let RouteViewComponent: typeof import('$lib/RouteView.svelte').default | null = null;
-  let VehicleViewComponent: typeof import('$lib/VehicleView.svelte').default | null = null;
-  let AlertCenterComponent: typeof import('$lib/AlertCenter.svelte').default | null = null;
   let routeInfoMessage: string | null = null;
   let highlightedAddress: AddressResult | null = null;
   let homeMode: 'list' | 'map' = 'list';
@@ -226,9 +226,6 @@
   onMount(() => {
     sessionId = getOrCreateSessionId();
     void track('home_view_loaded', { route: 'search' });
-    void import('$lib/tracker/TrackerWidget.svelte').then((mod) => {
-      TrackerWidgetComponent = mod.default;
-    });
   });
 
   onMount(() => {
@@ -286,42 +283,6 @@
       document.removeEventListener('keydown', handleKeyDown);
     };
   });
-
-  $: if (showPhase3Hub && !Phase3HubComponent) {
-    void import('$lib/Phase3Hub.svelte').then((mod) => {
-      Phase3HubComponent = mod.default;
-    });
-  }
-
-  $: if (showPhase4Hub && !Phase4HubComponent) {
-    void import('$lib/Phase4Hub.svelte').then((mod) => {
-      Phase4HubComponent = mod.default;
-    });
-  }
-
-  $: if (currentView === 'stop' && selectedStop && !StopViewComponent) {
-    void import('$lib/StopView.svelte').then((mod) => {
-      StopViewComponent = mod.default;
-    });
-  }
-
-  $: if (currentView === 'route' && selectedRoute && !RouteViewComponent) {
-    void import('$lib/RouteView.svelte').then((mod) => {
-      RouteViewComponent = mod.default;
-    });
-  }
-
-  $: if (currentView === 'vehicle' && selectedVehicle && !VehicleViewComponent) {
-    void import('$lib/VehicleView.svelte').then((mod) => {
-      VehicleViewComponent = mod.default;
-    });
-  }
-
-  $: if (currentView === 'alerts' && !AlertCenterComponent) {
-    void import('$lib/AlertCenter.svelte').then((mod) => {
-      AlertCenterComponent = mod.default;
-    });
-  }
 
   function updateBoardingLegendCollapse() {
     if (!browser || !boardingLegendEl) {
@@ -971,25 +932,17 @@
           </section>
         {/if}
 
-        {#if showPhase3Hub}
-          {#if Phase3HubComponent}
+          {#if showPhase3Hub}
             <section class="feature-panel feature-panel-commute" aria-label="Commute Insights">
-              <svelte:component this={Phase3HubComponent} sessionId={sessionId} onTrack={track} />
+              <svelte:component this={Phase3Hub} sessionId={sessionId} onTrack={track} />
             </section>
-          {:else}
-            <div class="detail-loading" role="status" aria-live="polite">Loading commute insights…</div>
           {/if}
-        {/if}
 
-        {#if showPhase4Hub}
-          {#if Phase4HubComponent}
+          {#if showPhase4Hub}
             <section class="feature-panel feature-panel-trip" aria-label="Trip Planning">
-              <svelte:component this={Phase4HubComponent} sessionId={sessionId} onTrack={track} />
+              <svelte:component this={Phase4Hub} sessionId={sessionId} onTrack={track} />
             </section>
-          {:else}
-            <div class="detail-loading" role="status" aria-live="polite">Loading trip planning…</div>
           {/if}
-        {/if}
 
         {#if searchResults.length > 0}
           <div class="results-section">
@@ -1099,11 +1052,7 @@
               </div>
               <div class="map-mode-widget" aria-label="Live map with route and alert context">
                 {#key mapViewKey}
-                  {#if TrackerWidgetComponent}
-                    <svelte:component this={TrackerWidgetComponent} config={homeMapConfig} />
-                  {:else}
-                    <div class="map-mode-loading" role="status" aria-live="polite">Loading map tools…</div>
-                  {/if}
+                  <svelte:component this={TrackerWidget} config={homeMapConfig} />
                 {/key}
               </div>
             </section>
@@ -1204,11 +1153,7 @@
           ← Back
         </button>
       </div>
-      {#if StopViewComponent}
-        <svelte:component this={StopViewComponent} stopId={selectedStop.stop_id} stopName={selectedStop.stop_name} />
-      {:else}
-        <div class="detail-loading" role="status" aria-live="polite">Loading stop details…</div>
-      {/if}
+      <svelte:component this={StopView} stopId={selectedStop.stop_id} stopName={selectedStop.stop_name} />
     {:else if currentView === 'route' && selectedRoute}
       <!-- Route View -->
       <div class="view-header">
@@ -1216,11 +1161,7 @@
           ← Back
         </button>
       </div>
-      {#if RouteViewComponent}
-        <svelte:component this={RouteViewComponent} routeId={selectedRoute.route_id} routeName={selectedRoute.route_name} />
-      {:else}
-        <div class="detail-loading" role="status" aria-live="polite">Loading route details…</div>
-      {/if}
+      <svelte:component this={RouteView} routeId={selectedRoute.route_id} routeName={selectedRoute.route_name} />
     {:else if currentView === 'vehicle' && selectedVehicle}
       <!-- Vehicle View -->
       <div class="view-header">
@@ -1228,11 +1169,7 @@
           ← Back
         </button>
       </div>
-      {#if VehicleViewComponent}
-        <svelte:component this={VehicleViewComponent} vehicleId={selectedVehicle.vehicle_id} />
-      {:else}
-        <div class="detail-loading" role="status" aria-live="polite">Loading vehicle details…</div>
-      {/if}
+      <svelte:component this={VehicleView} vehicleId={selectedVehicle.vehicle_id} />
     {:else if currentView === 'alerts'}
       <!-- Alerts View -->
       <div class="view-header">
@@ -1242,11 +1179,7 @@
         </button>
       </div>
       <div class="alerts-view-container">
-        {#if AlertCenterComponent}
-          <svelte:component this={AlertCenterComponent} alerts={currentAlerts} />
-        {:else}
-          <div class="detail-loading" role="status" aria-live="polite">Loading alerts…</div>
-        {/if}
+        <svelte:component this={AlertCenter} alerts={currentAlerts} />
       </div>
     {/if}
   </main>
@@ -1688,13 +1621,6 @@
   }
 
   .search-info {
-    @apply mt-4 p-3 text-sm rounded-xl border;
-    background: #eff6ff;
-    border-color: #bfdbfe;
-    color: #1e3a8a;
-  }
-
-  .detail-loading {
     @apply mt-4 p-3 text-sm rounded-xl border;
     background: #eff6ff;
     border-color: #bfdbfe;
@@ -2451,10 +2377,6 @@
     .feature-panel {
       padding-left: 0.85rem;
       padding-right: 0.85rem;
-    }
-
-    .detail-loading {
-      margin-top: 0.75rem;
     }
 
     .starter-inline {
