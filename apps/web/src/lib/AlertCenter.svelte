@@ -344,9 +344,17 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    width: min(100%, 72rem);
+    margin: 0 auto;
     padding: 1rem;
-    background: #ffffff;
-    border-radius: 0.5rem;
+    background:
+      radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 28%),
+      linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.97));
+    border: 1px solid rgba(217, 230, 243, 0.9);
+    border-radius: 1.5rem;
+    box-shadow:
+      0 18px 40px rgba(15, 23, 42, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
   }
 
   .alert-toolbar {
@@ -355,8 +363,12 @@
     gap: 0.75rem;
     align-items: center;
     padding: 0.75rem;
-    background: #f9fafb;
-    border-radius: 0.375rem;
+    background:
+      radial-gradient(circle at top right, rgba(191, 219, 254, 0.25), transparent 28%),
+      rgba(248, 250, 252, 0.92);
+    border-radius: 1rem;
+    border: 1px solid rgba(217, 230, 243, 0.95);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
   }
 
   .notification-toolbar {
@@ -366,9 +378,12 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.75rem;
-    border-radius: 0.375rem;
-    border: 1px solid #e5e7eb;
-    background: #fafafa;
+    border-radius: 1rem;
+    border: 1px solid rgba(217, 230, 243, 0.95);
+    background:
+      radial-gradient(circle at top right, rgba(191, 219, 254, 0.16), transparent 28%),
+      rgba(250, 250, 250, 0.92);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
   }
 
   .notification-main {
@@ -379,13 +394,27 @@
 
   .notify-button,
   .mute-button {
-    border: 1px solid #d1d5db;
-    background: #ffffff;
+    border: 1px solid rgba(147, 197, 253, 0.45);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
     color: #1f2937;
-    border-radius: 0.375rem;
-    padding: 0.4rem 0.6rem;
+    border-radius: 999px;
+    padding: 0.55rem 0.8rem;
     font-size: 0.8rem;
+    font-weight: 600;
     cursor: pointer;
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.05);
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.15s ease,
+      border-color 0.15s ease;
+  }
+
+  .notify-button:hover,
+  .mute-button:hover {
+    transform: translateY(-1px);
+    border-color: rgba(96, 165, 250, 0.65);
+    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.08);
   }
 
   .notify-button:disabled {
@@ -423,36 +452,40 @@
   }
 
   .filter-select {
-    padding: 0.375rem 0.5rem;
+    padding: 0.45rem 0.7rem;
     font-size: 0.875rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.25rem;
-    background: #ffffff;
+    border: 1px solid rgba(147, 197, 253, 0.3);
+    border-radius: 0.85rem;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.95));
     color: #1f2937;
     cursor: pointer;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
   }
 
   .filter-select:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.7);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
   }
 
   .search-input {
     flex: 1;
     min-width: 200px;
-    padding: 0.5rem 0.75rem;
+    padding: 0.55rem 0.85rem;
     font-size: 0.875rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.25rem;
-    background: #ffffff;
+    border: 1px solid rgba(147, 197, 253, 0.3);
+    border-radius: 0.85rem;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.95));
     color: #1f2937;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
   }
 
   .search-input:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.7);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
   }
 
   .alert-empty {
@@ -550,8 +583,8 @@
   }
 
   .count-badge {
-    font-weight: 600;
-    color: #1f2937;
+    font-weight: 700;
+    color: #1d4ed8;
   }
 
   .total-info {

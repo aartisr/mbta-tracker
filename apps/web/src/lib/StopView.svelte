@@ -496,10 +496,21 @@
 <style lang="postcss">
 	.stop-view {
 		@apply w-full max-w-2xl mx-auto;
+		padding: 1rem;
+		background:
+			radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 28%),
+			linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.97));
+		border: 1px solid rgba(217, 230, 243, 0.9);
+		border-radius: 1.5rem;
+		box-shadow:
+			0 18px 40px rgba(15, 23, 42, 0.08),
+			inset 0 1px 0 rgba(255, 255, 255, 0.8);
+		overflow: hidden;
 	}
 
 	.stop-header {
-		@apply flex items-start justify-between gap-4 p-4 bg-white border-b;
+		@apply flex items-start justify-between gap-4 p-1 pb-4 border-b;
+		border-color: rgba(217, 230, 243, 0.9);
 	}
 
 	.stop-info {
@@ -511,7 +522,10 @@
 	}
 
 	.location-badge {
-		@apply mt-2 inline-block text-xs font-mono text-gray-500 bg-gray-100 px-2 py-1 rounded;
+		@apply mt-2 inline-flex items-center text-xs font-mono px-2.5 py-1 rounded-full border;
+		color: #475569;
+		background: rgba(248, 250, 252, 0.92);
+		border-color: rgba(148, 163, 184, 0.18);
 	}
 
 	.header-actions {
@@ -520,18 +534,35 @@
 
 	.refresh-button,
 	.info-button {
-		@apply text-lg hover:opacity-70 transition-opacity p-2 rounded hover:bg-gray-100;
+		@apply text-lg transition-all p-2.5 rounded-full border;
+		background: rgba(255, 255, 255, 0.82);
+		color: #1d4ed8;
+		border-color: rgba(147, 197, 253, 0.45);
+		box-shadow: 0 8px 18px rgba(37, 99, 235, 0.08);
+	}
+
+	.refresh-button:hover,
+	.info-button:hover {
+		transform: translateY(-1px);
+		background: rgba(239, 246, 255, 0.95);
+		border-color: rgba(96, 165, 250, 0.65);
 	}
 
 	.alerts-section {
-		@apply p-4 space-y-2 bg-yellow-50 border-b;
+		@apply p-4 space-y-2 border-b;
+		background: rgba(255, 251, 235, 0.72);
+		border-color: rgba(253, 230, 138, 0.55);
 	}
 
 	.alert-item {
-		@apply flex gap-3 p-3 bg-yellow-100 rounded border border-yellow-300;
+		@apply flex gap-3 p-3 rounded-2xl border;
+		background: linear-gradient(180deg, rgba(255, 251, 235, 0.95), rgba(255, 247, 237, 0.92));
+		border-color: rgba(253, 230, 138, 0.6);
+		box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
 
 		&.high {
-			@apply bg-red-100 border-red-300;
+			background: linear-gradient(180deg, rgba(254, 242, 242, 0.98), rgba(255, 237, 237, 0.94));
+			border-color: rgba(252, 165, 165, 0.72);
 		}
 	}
 
@@ -552,7 +583,8 @@
 	}
 
 	.loading-state {
-		@apply flex flex-col items-center justify-center py-12 text-gray-500;
+		@apply flex flex-col items-center justify-center py-12 text-center;
+		color: #64748b;
 	}
 
 	.spinner {
@@ -560,11 +592,22 @@
 	}
 
 	.error-state {
-		@apply p-4 text-center text-red-600 bg-red-50 rounded;
+		@apply p-4 text-center rounded-2xl border;
+		color: #b91c1c;
+		background: linear-gradient(180deg, rgba(254, 242, 242, 0.98), rgba(255, 237, 237, 0.92));
+		border-color: rgba(252, 165, 165, 0.7);
+		box-shadow: 0 10px 22px rgba(15, 23, 42, 0.04);
 	}
 
 	.retry-button {
-		@apply mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors;
+		@apply mt-3 px-4 py-2 rounded-full text-sm font-semibold transition-all;
+		background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+		color: white;
+		box-shadow: 0 10px 20px rgba(220, 38, 38, 0.2);
+	}
+
+	.retry-button:hover {
+		transform: translateY(-1px);
 	}
 
 	.arrivals-content {
@@ -573,6 +616,7 @@
 
 	.updated-info {
 		@apply text-xs text-gray-500 text-center py-2 border-b;
+		border-color: rgba(217, 230, 243, 0.9);
 	}
 
 	.offline-banner {
@@ -584,12 +628,14 @@
 
 	.crowding-panel,
 	.boarding-panel {
-		@apply p-3 rounded-lg border;
-		border-color: #c7d2fe;
+		@apply p-3 rounded-2xl border;
+		border-color: rgba(199, 210, 254, 0.9);
 		background:
 			radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 32%),
 			linear-gradient(180deg, #fbfdff 0%, #f6f9ff 100%);
-		box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+		box-shadow:
+			0 14px 34px rgba(15, 23, 42, 0.06),
+			inset 0 1px 0 rgba(255, 255, 255, 0.8);
 	}
 
 	.crowding-head {
@@ -707,10 +753,22 @@
 		box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
 	}
 
+	.boarding-controls input:focus,
+	.boarding-controls select:focus {
+		outline: none;
+		border-color: rgba(59, 130, 246, 0.55);
+		box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.08);
+	}
+
 	.boarding-button {
 		@apply rounded-xl px-3 py-2 text-xs font-semibold text-white;
 		background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
 		box-shadow: 0 10px 22px rgba(37, 99, 235, 0.18);
+	}
+
+	.boarding-button:hover {
+		filter: brightness(1.02);
+		transform: translateY(-1px);
 	}
 
 	.boarding-grid {
@@ -750,9 +808,12 @@
 	}
 
 	.arrival-detail {
-		@apply p-3 rounded-lg border;
-		border-color: #bfdbfe;
-		background: #eff6ff;
+		@apply p-3 rounded-2xl border;
+		border-color: rgba(191, 219, 254, 0.8);
+		background:
+			radial-gradient(circle at top right, rgba(191, 219, 254, 0.55), transparent 30%),
+			linear-gradient(180deg, rgba(239, 246, 255, 0.98), rgba(255, 255, 255, 0.96));
+		box-shadow: 0 12px 26px rgba(37, 99, 235, 0.08);
 	}
 
 	.arrival-detail-head {
@@ -770,10 +831,16 @@
 	}
 
 	.arrival-detail-close {
-		@apply text-xs font-semibold px-2 py-1 rounded border;
-		border-color: #93c5fd;
+		@apply text-xs font-semibold px-2.5 py-1.5 rounded-full border transition-all;
+		border-color: rgba(147, 197, 253, 0.7);
 		color: #1e3a8a;
-		background: rgba(255, 255, 255, 0.7);
+		background: rgba(255, 255, 255, 0.78);
+		box-shadow: 0 8px 18px rgba(37, 99, 235, 0.08);
+	}
+
+	.arrival-detail-close:hover {
+		transform: translateY(-1px);
+		background: rgba(239, 246, 255, 0.95);
 	}
 
 	.arrival-detail-grid {
@@ -796,7 +863,8 @@
 	}
 
 	.direction-header {
-		@apply text-lg font-semibold text-gray-900 flex items-center gap-2;
+		@apply text-lg font-semibold flex items-center gap-2;
+		color: #0f172a;
 	}
 
 	.direction-label {
@@ -810,7 +878,10 @@
 	}
 
 	.count-badge {
-		@apply inline-block px-2 py-1 text-xs font-semibold bg-gray-200 text-gray-700 rounded;
+		@apply inline-flex items-center justify-center px-2.5 py-1 text-xs font-semibold rounded-full border;
+		background: rgba(248, 250, 252, 0.95);
+		color: #1d4ed8;
+		border-color: rgba(147, 197, 253, 0.45);
 	}
 
 	.arrivals-list {
@@ -818,7 +889,8 @@
 	}
 
 	.no-arrivals {
-		@apply text-center py-8 text-gray-500;
+		@apply text-center py-8;
+		color: #64748b;
 	}
 
 	.subtitle {
@@ -849,6 +921,10 @@
 
 		.boarding-controls {
 			grid-template-columns: 1fr;
+		}
+
+		.arrival-detail-head {
+			@apply flex-col items-start;
 		}
 	}
 

@@ -3,10 +3,6 @@
   import { browser } from '$app/environment';
   import { DEFAULT_TRACKER_CONFIG } from '$lib/tracker';
   import SearchBox from '$lib/SearchBox.svelte';
-  import StopView from '$lib/StopView.svelte';
-  import RouteView from '$lib/RouteView.svelte';
-  import VehicleView from '$lib/VehicleView.svelte';
-  import AlertCenter from '$lib/AlertCenter.svelte';
   import { apiFetch } from '$lib/api';
   import type {
     AddressResult,
@@ -43,6 +39,10 @@
   let TrackerWidgetComponent: typeof import('$lib/tracker/TrackerWidget.svelte').default | null = null;
   let Phase3HubComponent: typeof import('$lib/Phase3Hub.svelte').default | null = null;
   let Phase4HubComponent: typeof import('$lib/Phase4Hub.svelte').default | null = null;
+  let StopViewComponent: typeof import('$lib/StopView.svelte').default | null = null;
+  let RouteViewComponent: typeof import('$lib/RouteView.svelte').default | null = null;
+  let VehicleViewComponent: typeof import('$lib/VehicleView.svelte').default | null = null;
+  let AlertCenterComponent: typeof import('$lib/AlertCenter.svelte').default | null = null;
   let routeInfoMessage: string | null = null;
   let highlightedAddress: AddressResult | null = null;
   let homeMode: 'list' | 'map' = 'list';
@@ -64,7 +64,7 @@
   let isBoardingLegendCollapsed = false;
 
   const quickQueries = ['South Station now', 'Alewife', 'Red Line', '66', 'Harvard'];
-  const searchPrinciples = ['Fastest boarding', 'Live arrivals', 'Map only when needed'];
+  const searchPrinciples = ['Fast boarding', 'Live arrivals', 'Map on demand'];
   const ACCESSIBILITY_PREFS_KEY = 'mbta_accessibility_prefs_v1';
 
   $: searchResultBreakdown = searchResults.reduce(
@@ -160,15 +160,15 @@
   function getResultActionLabel(result: SearchResult): string {
     switch (result.type) {
       case 'route':
-        return 'Open route view';
+        return 'View route';
       case 'stop':
-        return 'Open arrivals';
+        return 'View arrivals';
       case 'address':
-        return 'Find best boarding stop';
+        return 'Best nearby stop';
       case 'vehicle':
         return 'Track vehicle';
       case 'landmark':
-        return 'Show nearby stops';
+        return 'Nearby stops';
     }
   }
 
@@ -296,6 +296,30 @@
   $: if (showPhase4Hub && !Phase4HubComponent) {
     void import('$lib/Phase4Hub.svelte').then((mod) => {
       Phase4HubComponent = mod.default;
+    });
+  }
+
+  $: if (currentView === 'stop' && selectedStop && !StopViewComponent) {
+    void import('$lib/StopView.svelte').then((mod) => {
+      StopViewComponent = mod.default;
+    });
+  }
+
+  $: if (currentView === 'route' && selectedRoute && !RouteViewComponent) {
+    void import('$lib/RouteView.svelte').then((mod) => {
+      RouteViewComponent = mod.default;
+    });
+  }
+
+  $: if (currentView === 'vehicle' && selectedVehicle && !VehicleViewComponent) {
+    void import('$lib/VehicleView.svelte').then((mod) => {
+      VehicleViewComponent = mod.default;
+    });
+  }
+
+  $: if (currentView === 'alerts' && !AlertCenterComponent) {
+    void import('$lib/AlertCenter.svelte').then((mod) => {
+      AlertCenterComponent = mod.default;
     });
   }
 
@@ -852,7 +876,7 @@
           <section class="search-hero" aria-labelledby="search-hero-title">
             <div class="search-hero-copy">
               <p class="search-hero-kicker">Search-first transit</p>
-              <h2 id="search-hero-title">Find the best MBTA option in one query.</h2>
+              <h2 id="search-hero-title">Find the best MBTA option fast.</h2>
               <div class="search-hero-pills" aria-label="How the experience works">
                 {#each searchPrinciples as principle, index}
                   <span class="hero-pill" style={`--stagger:${index};`}>{principle}</span>
@@ -863,14 +887,14 @@
 
           <SearchBox
             onSearch={handleSearch}
-            placeholder="Search stop, route, address, or vehicle"
+            placeholder="Search stop, route, address, vehicle"
             autoFocus={true}
           />
         </div>
 
         {#if isSearching}
           <div class="search-status" role="status" aria-live="polite">
-            Searching for "{lastQuery}"...
+            Searching "{lastQuery}"...
           </div>
         {/if}
 
@@ -896,7 +920,7 @@
           </section>
 
           <section class="search-guidance" aria-label="Suggested search patterns">
-            <p>Search a route or stop if you know it. Search an address if you want the nearest boarding option.</p>
+            <p>Use a route or stop when you know it. Use an address to find the nearest boarding stop.</p>
           </section>
         {/if}
 
@@ -905,6 +929,8 @@
             <section class="feature-panel feature-panel-commute" aria-label="Commute Insights">
               <svelte:component this={Phase3HubComponent} sessionId={sessionId} onTrack={track} />
             </section>
+          {:else}
+            <div class="detail-loading" role="status" aria-live="polite">Loading commute insights…</div>
           {/if}
         {/if}
 
@@ -913,6 +939,8 @@
             <section class="feature-panel feature-panel-trip" aria-label="Trip Planning">
               <svelte:component this={Phase4HubComponent} sessionId={sessionId} onTrack={track} />
             </section>
+          {:else}
+            <div class="detail-loading" role="status" aria-live="polite">Loading trip planning…</div>
           {/if}
         {/if}
 
@@ -920,7 +948,7 @@
           <div class="results-section">
             <div class="results-head">
               <div>
-                <h2 class="results-title">Search Results</h2>
+                <h2 class="results-title">Results</h2>
                 {#if searchResultSummaryPills.length > 0}
                   <div class="results-summary-pills" aria-label="Search result summary">
                     {#each searchResultSummaryPills as pill}
@@ -1114,7 +1142,7 @@
             <h2>No direct matches for "{lastQuery}"</h2>
             {#if looksLikeAddressQuery(lastQuery)}
               <p>
-                Try a slightly shorter address (for example: <strong>878 Salem St, Malden</strong>) or pick an address from autocomplete so we can route you to the nearest bus stop.
+                Try a shorter address, like <strong>878 Salem St, Malden</strong>, or pick an autocomplete suggestion so we can route you to the nearest stop.
               </p>
             {:else}
               <p>Try a stop name like South Station, a route like Red Line, or a route number like 66.</p>
@@ -1129,7 +1157,11 @@
           ← Back
         </button>
       </div>
-      <StopView stopId={selectedStop.stop_id} stopName={selectedStop.stop_name} />
+      {#if StopViewComponent}
+        <svelte:component this={StopViewComponent} stopId={selectedStop.stop_id} stopName={selectedStop.stop_name} />
+      {:else}
+        <div class="detail-loading" role="status" aria-live="polite">Loading stop details…</div>
+      {/if}
     {:else if currentView === 'route' && selectedRoute}
       <!-- Route View -->
       <div class="view-header">
@@ -1137,7 +1169,11 @@
           ← Back
         </button>
       </div>
-      <RouteView routeId={selectedRoute.route_id} routeName={selectedRoute.route_name} />
+      {#if RouteViewComponent}
+        <svelte:component this={RouteViewComponent} routeId={selectedRoute.route_id} routeName={selectedRoute.route_name} />
+      {:else}
+        <div class="detail-loading" role="status" aria-live="polite">Loading route details…</div>
+      {/if}
     {:else if currentView === 'vehicle' && selectedVehicle}
       <!-- Vehicle View -->
       <div class="view-header">
@@ -1145,7 +1181,11 @@
           ← Back
         </button>
       </div>
-      <VehicleView vehicleId={selectedVehicle.vehicle_id} />
+      {#if VehicleViewComponent}
+        <svelte:component this={VehicleViewComponent} vehicleId={selectedVehicle.vehicle_id} />
+      {:else}
+        <div class="detail-loading" role="status" aria-live="polite">Loading vehicle details…</div>
+      {/if}
     {:else if currentView === 'alerts'}
       <!-- Alerts View -->
       <div class="view-header">
@@ -1155,7 +1195,11 @@
         </button>
       </div>
       <div class="alerts-view-container">
-        <AlertCenter alerts={currentAlerts} />
+        {#if AlertCenterComponent}
+          <svelte:component this={AlertCenterComponent} alerts={currentAlerts} />
+        {:else}
+          <div class="detail-loading" role="status" aria-live="polite">Loading alerts…</div>
+        {/if}
       </div>
     {/if}
   </main>
@@ -1582,6 +1626,13 @@
   }
 
   .search-info {
+    @apply mt-4 p-3 text-sm rounded-xl border;
+    background: #eff6ff;
+    border-color: #bfdbfe;
+    color: #1e3a8a;
+  }
+
+  .detail-loading {
     @apply mt-4 p-3 text-sm rounded-xl border;
     background: #eff6ff;
     border-color: #bfdbfe;
@@ -2294,8 +2345,8 @@
 
     .search-container {
       @apply py-3;
-      padding-left: 0.85rem;
-      padding-right: 0.85rem;
+      padding-left: 0.72rem;
+      padding-right: 0.72rem;
       position: static;
       border-radius: 1.15rem;
       box-shadow:
@@ -2309,8 +2360,8 @@
     }
 
     .search-hero h2 {
-      @apply text-[0.98rem];
-      max-width: 18ch;
+      @apply text-[1rem];
+      max-width: 22ch;
     }
 
     .search-hero-pills {
@@ -2319,8 +2370,8 @@
     }
 
     .hero-pill {
-      padding: 0.35rem 0.55rem;
-      font-size: 0.68rem;
+      padding: 0.4rem 0.6rem;
+      font-size: 0.7rem;
     }
 
     .search-guidance {
@@ -2336,6 +2387,10 @@
       padding-right: 0;
     }
 
+    .detail-loading {
+      margin-top: 0.75rem;
+    }
+
     .starter-inline {
       margin-top: 0.55rem;
       display: grid;
@@ -2347,12 +2402,12 @@
     .starter-inline-item {
       width: 100%;
       white-space: normal;
-      font-size: 0.68rem;
-      padding: 0.5rem 0.55rem;
+      font-size: 0.7rem;
+      padding: 0.55rem 0.7rem;
       background: #f8fbff;
       border-color: #d8e4f1;
       box-shadow: none;
-      min-height: 2.3rem;
+      min-height: 2.5rem;
     }
 
     .results-head {
@@ -2378,7 +2433,7 @@
     }
 
     .boarding-panel-head h3 {
-      @apply text-[0.98rem];
+      @apply text-[1rem];
     }
 
     .boarding-panel-head p {
@@ -2431,12 +2486,12 @@
     }
 
     .footer-ownership {
-      font-size: 0.66rem;
-      padding: 0.24rem 0.5rem;
+      font-size: 0.68rem;
+      padding: 0.28rem 0.55rem;
     }
 
     .footer-credits {
-      font-size: 0.65rem;
+      font-size: 0.68rem;
     }
 
     .footer-links {
@@ -2472,12 +2527,12 @@
     }
 
     .nav-tab {
-      padding: 0.62rem 0.22rem;
+      padding: 0.68rem 0.28rem;
       font-size: 0.68rem;
     }
 
     .search-hero h2 {
-      @apply text-[0.92rem];
+      @apply text-[0.98rem];
     }
 
     .search-hero-pills {

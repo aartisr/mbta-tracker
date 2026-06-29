@@ -260,10 +260,23 @@
 <style lang="postcss">
 	.route-container {
 		@apply space-y-4;
+		width: min(100%, 72rem);
+		margin: 0 auto;
+		padding: 1rem;
+		background:
+			radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 28%),
+			linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.97));
+		border: 1px solid rgba(217, 230, 243, 0.9);
+		border-radius: 1.5rem;
+		box-shadow:
+			0 18px 40px rgba(15, 23, 42, 0.08),
+			inset 0 1px 0 rgba(255, 255, 255, 0.8);
+		overflow: hidden;
 	}
 
 	.route-header {
-		@apply pb-4 border-b border-gray-200;
+		@apply pb-4 border-b;
+		border-color: rgba(217, 230, 243, 0.9);
 	}
 
 	.route-kicker {
@@ -324,15 +337,24 @@
 	.loading-state,
 	.error-state,
 	.empty-state {
-		@apply py-8 text-center text-gray-500;
+		@apply py-8 text-center;
+		color: #64748b;
 	}
 
 	.error-message {
-		@apply text-red-600 mb-3;
+		@apply mb-3;
+		color: #b91c1c;
 	}
 
 	.retry-button {
-		@apply px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors;
+		@apply px-4 py-2 rounded-full text-sm font-semibold transition-all;
+		background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+		color: white;
+		box-shadow: 0 10px 22px rgba(37, 99, 235, 0.18);
+	}
+
+	.retry-button:hover {
+		transform: translateY(-1px);
 	}
 
 	.stops-section {
@@ -347,7 +369,7 @@
 		@apply w-full flex items-center gap-3 p-3 border rounded-2xl transition-all text-left;
 		background:
 			linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 251, 255, 0.97));
-		border-color: #d9e6f3;
+		border-color: rgba(217, 230, 243, 0.9);
 		box-shadow:
 			0 10px 24px rgba(15, 23, 42, 0.04),
 			inset 0 1px 0 rgba(255, 255, 255, 0.75);
@@ -436,12 +458,19 @@
 	}
 
 	.arrivals-panel {
-		@apply lg:col-span-2 space-y-4 p-4 rounded-2xl border border-gray-200 bg-white;
-		box-shadow: 0 14px 34px rgba(15, 23, 42, 0.05);
+		@apply lg:col-span-2 space-y-4 p-4 rounded-2xl border;
+		background:
+			radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 30%),
+			linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.96));
+		border-color: rgba(217, 230, 243, 0.9);
+		box-shadow:
+			0 12px 28px rgba(15, 23, 42, 0.05),
+			inset 0 1px 0 rgba(255, 255, 255, 0.75);
 	}
 
 	.panel-header {
-		@apply pb-3 border-b border-gray-200;
+		@apply pb-3 border-b;
+		border-color: rgba(217, 230, 243, 0.9);
 	}
 
 	.panel-title {
@@ -481,7 +510,10 @@
 	}
 
 	.direction-group {
-		@apply space-y-2 p-3 rounded-2xl border border-gray-100 bg-gray-50;
+		@apply space-y-2 p-3 rounded-2xl border;
+		border-color: rgba(217, 230, 243, 0.8);
+		background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.95));
+		box-shadow: 0 10px 22px rgba(15, 23, 42, 0.04);
 	}
 
 	.direction-title {

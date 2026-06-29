@@ -642,10 +642,24 @@
 	.search-input {
 		@apply flex-1 outline-none text-base;
 		min-width: 0;
+		background: transparent;
 		color: #0f172a;
+		caret-color: #1d4ed8;
+		-webkit-text-fill-color: #0f172a;
+		appearance: none;
+		color-scheme: light;
 
 		&::placeholder {
 			color: #64748b;
+		}
+
+		&:-webkit-autofill,
+		&:-webkit-autofill:hover,
+		&:-webkit-autofill:focus,
+		&:-webkit-autofill:active {
+			-webkit-text-fill-color: #0f172a;
+			box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.98) inset;
+			transition: background-color 9999s ease-out 0s;
 		}
 	}
 
@@ -689,7 +703,7 @@
 		background: #1d4ed8;
 		border-color: #1e40af;
 		color: #ffffff;
-		padding: 0.43rem 0.7rem;
+		padding: 0.5rem 0.8rem;
 		white-space: nowrap;
 
 		&:hover:enabled {
@@ -704,8 +718,8 @@
 
 	.favorite-button {
 		@apply rounded-full transition-colors text-xs font-semibold border;
-		width: 1.9rem;
-		height: 1.9rem;
+		width: 2rem;
+		height: 2rem;
 		line-height: 1;
 		border-color: #fcd34d;
 		background: #fffbeb;
@@ -984,8 +998,9 @@
 
 	@media (max-width: 640px) {
 		.search-input-wrapper {
-			@apply px-3 py-2;
+			@apply px-3 py-2.5;
 			grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+			column-gap: 0.4rem;
 		}
 
 		.voice-button {
@@ -993,7 +1008,8 @@
 		}
 
 		.search-button {
-			padding: 0.4rem 0.62rem;
+			padding: 0.46rem 0.72rem;
+			min-height: 2.45rem;
 		}
 
 		.suggestion-item {
@@ -1037,6 +1053,7 @@
 			flex: 1 1 auto;
 			min-width: 0;
 			white-space: normal;
+			min-height: 2.45rem;
 		}
 
 		.history-item {

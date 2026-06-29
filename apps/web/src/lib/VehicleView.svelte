@@ -231,23 +231,45 @@
 <style lang="postcss">
 	.vehicle-container {
 		@apply space-y-4;
+		width: min(100%, 72rem);
+		margin: 0 auto;
+		padding: 1rem;
+		background:
+			radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 28%),
+			linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.97));
+		border: 1px solid rgba(217, 230, 243, 0.9);
+		border-radius: 1.5rem;
+		box-shadow:
+			0 18px 40px rgba(15, 23, 42, 0.08),
+			inset 0 1px 0 rgba(255, 255, 255, 0.8);
+		overflow: hidden;
 	}
 
 	.loading-state,
 	.error-state {
-		@apply py-8 text-center text-gray-500;
+		@apply py-8 text-center;
+		color: #64748b;
 	}
 
 	.error-message {
-		@apply text-red-600 mb-3;
+		@apply mb-3;
+		color: #b91c1c;
 	}
 
 	.retry-button {
-		@apply px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors;
+		@apply px-4 py-2 rounded-full text-sm font-semibold transition-all;
+		background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+		color: white;
+		box-shadow: 0 10px 22px rgba(37, 99, 235, 0.18);
+	}
+
+	.retry-button:hover {
+		transform: translateY(-1px);
 	}
 
 	.vehicle-header {
-		@apply flex items-start justify-between pb-4 border-b border-gray-200;
+		@apply flex items-start justify-between pb-4 border-b;
+		border-color: rgba(217, 230, 243, 0.9);
 	}
 
 	.vehicle-title {
@@ -274,11 +296,17 @@
 	}
 
 	.live-indicator {
-		@apply inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold bg-red-100 text-red-700 rounded;
+		@apply inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full border;
+		background: rgba(254, 242, 242, 0.94);
+		color: #b91c1c;
+		border-color: rgba(252, 165, 165, 0.55);
 	}
 
 	.occupancy-badge {
-		@apply inline-block px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded;
+		@apply inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full border;
+		background: rgba(239, 246, 255, 0.94);
+		color: #1d4ed8;
+		border-color: rgba(147, 197, 253, 0.55);
 	}
 
 	.vehicle-grid {
@@ -286,11 +314,22 @@
 	}
 
 	.vehicle-info-card {
-		@apply bg-white border border-gray-200 rounded-lg overflow-hidden;
+		@apply border rounded-2xl overflow-hidden;
+		border-color: rgba(217, 230, 243, 0.9);
+		background:
+			radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 30%),
+			linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.96));
+		box-shadow:
+			0 12px 28px rgba(15, 23, 42, 0.05),
+			inset 0 1px 0 rgba(255, 255, 255, 0.75);
 	}
 
 	.map-placeholder {
-		@apply h-48 bg-gradient-to-br from-blue-50 to-cyan-50 border-b border-gray-200 flex flex-col items-center justify-center;
+		@apply h-48 border-b flex flex-col items-center justify-center;
+		border-color: rgba(217, 230, 243, 0.9);
+		background:
+			radial-gradient(circle at top left, rgba(191, 219, 254, 0.75), transparent 55%),
+			linear-gradient(135deg, #eff6ff, #ecfeff);
 	}
 
 	.map-icon {
@@ -322,20 +361,23 @@
 	}
 
 	.stops-card {
-		@apply bg-white border border-gray-200 rounded-2xl p-4;
+		@apply border rounded-2xl p-4;
 		background:
 			linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.96));
+		border-color: rgba(217, 230, 243, 0.9);
 		box-shadow:
 			0 12px 24px rgba(15, 23, 42, 0.05),
 			inset 0 1px 0 rgba(255, 255, 255, 0.75);
 	}
 
 	.stops-title {
-		@apply text-lg font-semibold text-gray-900 m-0 pb-3 border-b border-gray-200;
+		@apply text-lg font-semibold text-gray-900 m-0 pb-3 border-b;
+		border-color: rgba(217, 230, 243, 0.9);
 	}
 
 	.no-stops {
-		@apply py-8 text-center text-gray-500;
+		@apply py-8 text-center;
+		color: #64748b;
 	}
 
 	.stops-list {
@@ -346,7 +388,7 @@
 		@apply flex items-center gap-3 p-3 rounded-2xl;
 		background:
 			linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
-		border: 1px solid rgba(15, 23, 42, 0.06);
+		border: 1px solid rgba(217, 230, 243, 0.8);
 		box-shadow: 0 10px 20px rgba(15, 23, 42, 0.04);
 	}
 
