@@ -387,11 +387,13 @@
 
 <style lang="postcss">
   .phase3-home-panels {
-    @apply mt-5;
+    @apply w-full;
+    margin-top: 0;
   }
 
   .phase3-shell {
     @apply rounded-[1.5rem] border p-4;
+    width: 100%;
     background:
       radial-gradient(circle at top right, rgba(56, 189, 248, 0.14), transparent 24%),
       linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.96));
@@ -730,6 +732,10 @@
     .phase3-shell {
       @apply p-3;
       border-radius: 1.15rem;
+    }
+
+    .phase3-home-panels {
+      margin-top: 0;
     }
 
     .phase3-hero-copy h3 {

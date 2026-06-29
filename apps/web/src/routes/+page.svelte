@@ -902,13 +902,17 @@
 
         {#if showPhase3Hub}
           {#if Phase3HubComponent}
-            <svelte:component this={Phase3HubComponent} sessionId={sessionId} onTrack={track} />
+            <section class="feature-panel feature-panel-commute" aria-label="Commute Insights">
+              <svelte:component this={Phase3HubComponent} sessionId={sessionId} onTrack={track} />
+            </section>
           {/if}
         {/if}
 
         {#if showPhase4Hub}
           {#if Phase4HubComponent}
-            <svelte:component this={Phase4HubComponent} sessionId={sessionId} onTrack={track} />
+            <section class="feature-panel feature-panel-trip" aria-label="Trip Planning">
+              <svelte:component this={Phase4HubComponent} sessionId={sessionId} onTrack={track} />
+            </section>
           {/if}
         {/if}
 
@@ -1529,6 +1533,20 @@
   .search-guidance p {
     @apply m-0 text-xs;
     line-height: 1.45;
+  }
+
+  .feature-panel {
+    @apply mt-3 w-full;
+    padding-left: 0.15rem;
+    padding-right: 0.15rem;
+  }
+
+  .feature-panel-commute {
+    animation: panel-rise 320ms var(--ease-premium);
+  }
+
+  .feature-panel-trip {
+    animation: panel-rise 360ms var(--ease-premium);
   }
 
   .alerts-view-container {
@@ -2308,6 +2326,11 @@
 
     .search-view {
       @apply space-y-2.5;
+    }
+
+    .feature-panel {
+      padding-left: 0;
+      padding-right: 0;
     }
 
     .starter-inline {

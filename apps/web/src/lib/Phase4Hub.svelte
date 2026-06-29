@@ -365,11 +365,13 @@
 
 <style lang="postcss">
   .phase4-home-panels {
-    @apply mt-4;
+    @apply w-full;
+    margin-top: 0;
   }
 
   .phase4-shell {
     @apply rounded-[1.5rem] border p-4;
+    width: 100%;
     background:
       radial-gradient(circle at top left, rgba(124, 58, 237, 0.12), transparent 24%),
       linear-gradient(145deg, rgba(255, 255, 255, 0.97), rgba(250, 245, 255, 0.97));
@@ -674,6 +676,10 @@
     .phase4-shell {
       @apply p-3;
       border-radius: 1.15rem;
+    }
+
+    .phase4-home-panels {
+      margin-top: 0;
     }
 
     .phase4-copy h3 {
