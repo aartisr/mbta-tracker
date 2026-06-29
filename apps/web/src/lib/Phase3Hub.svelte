@@ -396,9 +396,11 @@
     width: 100%;
     background:
       radial-gradient(circle at top right, rgba(56, 189, 248, 0.14), transparent 24%),
-      linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.96));
-    border-color: #d9e6f3;
-    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+      linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.97));
+    border-color: rgba(217, 230, 243, 0.96);
+    box-shadow:
+      0 18px 40px rgba(15, 23, 42, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.82);
   }
 
   .phase3-hero {
@@ -418,6 +420,7 @@
     @apply m-0 mt-1 text-[1.18rem] font-semibold;
     color: var(--text-strong);
     letter-spacing: -0.02em;
+    line-height: 1.12;
   }
 
   .phase3-hero-copy p {
@@ -565,9 +568,11 @@
 
   .phase3-card {
     @apply rounded-2xl border p-4;
-    background: rgba(255, 255, 255, 0.96);
+    background: rgba(255, 255, 255, 0.965);
     border-color: #dbe7f5;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+    box-shadow:
+      0 12px 28px rgba(15, 23, 42, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.78);
   }
 
   .phase3-card-primary {
@@ -744,6 +749,12 @@
 
     .phase3-metrics {
       grid-template-columns: repeat(3, minmax(0, 1fr));
+      min-width: 0;
+    }
+
+    .phase3-metric {
+      padding-left: 0.55rem;
+      padding-right: 0.55rem;
     }
 
     .commute-item {

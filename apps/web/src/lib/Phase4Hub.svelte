@@ -374,9 +374,11 @@
     width: 100%;
     background:
       radial-gradient(circle at top left, rgba(124, 58, 237, 0.12), transparent 24%),
-      linear-gradient(145deg, rgba(255, 255, 255, 0.97), rgba(250, 245, 255, 0.97));
-    border-color: #e1d7ff;
-    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+      linear-gradient(145deg, rgba(255, 255, 255, 0.985), rgba(250, 245, 255, 0.97));
+    border-color: rgba(225, 215, 255, 0.96);
+    box-shadow:
+      0 18px 40px rgba(15, 23, 42, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.82);
   }
 
   .phase4-hero {
@@ -396,6 +398,7 @@
     @apply m-0 mt-1 text-[1.18rem] font-semibold;
     color: var(--text-strong);
     letter-spacing: -0.02em;
+    line-height: 1.12;
   }
 
   .phase4-copy p {
@@ -452,9 +455,11 @@
 
   .phase4-card {
     @apply rounded-2xl border p-4;
-    background: rgba(255, 255, 255, 0.96);
+    background: rgba(255, 255, 255, 0.965);
     border-color: #e9ddff;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+    box-shadow:
+      0 12px 28px rgba(15, 23, 42, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.78);
   }
 
   .phase4-card-feature {
@@ -688,6 +693,12 @@
 
     .phase4-metrics {
       grid-template-columns: repeat(3, minmax(0, 1fr));
+      min-width: 0;
+    }
+
+    .phase4-metric {
+      padding-left: 0.55rem;
+      padding-right: 0.55rem;
     }
 
     .mission-grid {

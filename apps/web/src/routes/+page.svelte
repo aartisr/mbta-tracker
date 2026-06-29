@@ -1537,6 +1537,9 @@
 
   .feature-panel {
     @apply mt-3 w-full;
+    max-width: 72rem;
+    margin-left: auto;
+    margin-right: auto;
     padding-left: 0.15rem;
     padding-right: 0.15rem;
   }
