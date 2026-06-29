@@ -1584,8 +1584,8 @@
     max-width: 72rem;
     margin-left: auto;
     margin-right: auto;
-    padding-left: 0.15rem;
-    padding-right: 0.15rem;
+    padding-left: 1.75rem;
+    padding-right: 1.15rem;
   }
 
   .feature-panel-commute {
@@ -2383,8 +2383,8 @@
     }
 
     .feature-panel {
-      padding-left: 0;
-      padding-right: 0;
+      padding-left: 0.85rem;
+      padding-right: 0.85rem;
     }
 
     .detail-loading {

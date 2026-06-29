@@ -392,7 +392,9 @@
   }
 
   .phase3-shell {
-    @apply rounded-[1.5rem] border p-4;
+    @apply rounded-[1.5rem] border p-5;
+    padding-left: 1.75rem;
+    padding-right: 1.35rem;
     width: 100%;
     background:
       radial-gradient(circle at top right, rgba(56, 189, 248, 0.14), transparent 24%),
@@ -405,10 +407,12 @@
 
   .phase3-hero {
     @apply flex items-start justify-between gap-4;
+    padding-left: 0.15rem;
   }
 
   .phase3-hero-copy {
     @apply min-w-0;
+    padding-left: 0.2rem;
   }
 
   .phase3-kicker {
@@ -567,7 +571,9 @@
   }
 
   .phase3-card {
-    @apply rounded-2xl border p-4;
+    @apply rounded-2xl border p-5;
+    padding-left: 1.5rem;
+    padding-right: 1.35rem;
     background: rgba(255, 255, 255, 0.965);
     border-color: #dbe7f5;
     box-shadow:
@@ -735,12 +741,22 @@
 
   @media (max-width: 640px) {
     .phase3-shell {
-      @apply p-3;
+      @apply p-4;
+      padding-left: 0.85rem;
+      padding-right: 0.85rem;
       border-radius: 1.15rem;
     }
 
     .phase3-home-panels {
       margin-top: 0;
+    }
+
+    .phase3-hero {
+      padding-left: 0.15rem;
+    }
+
+    .phase3-hero-copy {
+      padding-left: 0.1rem;
     }
 
     .phase3-hero-copy h3 {
@@ -767,7 +783,9 @@
     }
 
     .phase3-card {
-      @apply p-3;
+      @apply p-4;
+      padding-left: 1.15rem;
+      padding-right: 1rem;
     }
 
     .phase3-card-head {
