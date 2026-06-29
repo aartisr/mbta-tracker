@@ -732,14 +732,60 @@
     name="description"
     content="Search routes, stops, addresses, and vehicles in one calm MBTA experience with live arrivals and map context."
   />
+  <meta
+    name="keywords"
+    content="MBTA, Boston transit, transit tracker, live arrivals, route search, stop search, commute planning, trip planning, MBTA tracker"
+  />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta property="og:title" content="MBTA Tracker" />
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="MBTA Tracker" />
+  <meta property="og:title" content="MBTA Tracker - Search First Transit" />
   <meta
     property="og:description"
     content="Find routes, stops, and live arrivals with a cleaner, faster MBTA search experience."
   />
+  <meta property="og:url" content={data.canonicalUrl} />
+  <meta property="og:image" content={data.shareImageUrl} />
+  <meta property="og:image:alt" content="MBTA Tracker premium social preview with live transit, search, and map context." />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="MBTA Tracker - Search First Transit" />
+  <meta
+    name="twitter:description"
+    content="Search MBTA routes, stops, addresses, and vehicles with live arrivals, map context, and fast planning."
+  />
+  <meta name="twitter:image" content={data.shareImageUrl} />
   <meta name="theme-color" content="#f7f9fd" />
   <link rel="canonical" href={data.canonicalUrl} />
+  <script type="application/ld+json">
+    {JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      name: 'MBTA Tracker',
+      url: data.canonicalUrl,
+      description:
+        'Search routes, stops, addresses, and vehicles in one calm MBTA experience with live arrivals and map context.',
+      applicationCategory: 'TransportationApplication',
+      operatingSystem: 'Web',
+      browserRequirements: 'Requires a modern web browser',
+      image: data.shareImageUrl,
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'USD'
+      },
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: `${data.canonicalUrl}?q={search_term_string}`,
+        'query-input': 'required name=search_term_string'
+      },
+      publisher: {
+        '@type': 'Person',
+        name: 'Aarti S Ravikumar',
+        url: 'https://ai-aarti.com'
+      }
+    })}
+  </script>
 </svelte:head>
 
   <div
@@ -786,6 +832,7 @@
           </button>
         </nav>
         <div class="header-actions">
+          <a class="share-link" href="/share">Share</a>
           <button
             class="settings-button {settingsMenuOpen ? 'active' : ''}"
             bind:this={settingsButtonEl}
@@ -1408,6 +1455,21 @@
   .header-actions {
     @apply flex items-center gap-2 ml-auto;
     flex-shrink: 0;
+  }
+
+  .share-link {
+    @apply inline-flex items-center justify-center px-3 py-1.5 text-[11px] font-semibold rounded-full border transition-colors;
+    border-color: rgba(148, 163, 184, 0.4);
+    color: var(--text-strong);
+    background: rgba(255, 255, 255, 0.78);
+    text-decoration: none;
+    min-height: 2.1rem;
+  }
+
+  .share-link:hover {
+    background: #eef4ff;
+    border-color: rgba(37, 99, 235, 0.22);
+    color: #1e40af;
   }
 
   .settings-button {
@@ -2322,6 +2384,10 @@
 
     .header-actions {
       grid-area: actions;
+    }
+
+    .share-link {
+      display: inline-flex;
     }
 
     .header-layout {

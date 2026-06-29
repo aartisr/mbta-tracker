@@ -19,6 +19,8 @@ This project is a practical, user-first transit tool and a personal thank-you to
 - Keep details collapsed by default so the page stays quick to scan.
 - Support both a local Node.js backend and a Cloudflare Worker deployment.
 - Keep the implementation modular so features stay maintainable and testable.
+- Provide a public share page and crawlable metadata for discovery and social previews.
+- Optional Microsoft Clarity analytics can be enabled with `PUBLIC_CLARITY_PROJECT_ID`.
 
 Stack:
 

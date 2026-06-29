@@ -1,0 +1,32 @@
+# MBTA Tracker
+
+MBTA Tracker is a search-first Boston transit web app focused on fast discovery, live arrivals, route and stop detail, vehicle tracking, commute intelligence, and trip planning.
+
+## Primary Experience
+- Search routes, stops, addresses, and vehicles from the home page
+- View live arrivals and nearby stop recommendations
+- Inspect route-level stop sequences and crowding guidance
+- Track a vehicle with next-stop detail
+- Read alerts and realtime status updates
+
+## Public Entry Points
+- `/` search-first transit home
+- `/share` public share and FAQ landing page
+- `/embed` embeddable widget view
+- `/health` basic health endpoint
+
+## APIs
+- `/api/search`
+- `/api/route/*`
+- `/api/stop/*`
+- `/api/vehicle/*`
+- `/api/alerts`
+- `/api/telemetry`
+
+## Credits
+- MBTA data
+- MapLibre
+- OpenStreetMap
+- Nominatim
+- CARTO
+- Aarti S Ravikumar, Pioneer Charter School of Science II

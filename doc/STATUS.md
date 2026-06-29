@@ -18,6 +18,7 @@ This is the current implementation status for the repo as of now.
 - Missions, leaderboard, mission feedback, and community posts.
 - File-backed persistence for Phase 3 and Phase 4 state.
 - Collapsed map details and compact desktop/mobile controls.
+- Public share landing page, FAQ schema, social preview image, robots.txt, sitemap.xml, and llms.txt discovery surface.
 
 ## Partially Implemented
 

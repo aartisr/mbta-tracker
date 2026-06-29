@@ -1,16 +1,16 @@
 <svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="bg" x1="84" y1="42" x2="1108" y2="590" gradientUnits="userSpaceOnUse">
+    <linearGradient id="bg" x1="80" y1="40" x2="1120" y2="600" gradientUnits="userSpaceOnUse">
       <stop stop-color="#0F3D91"/>
-      <stop offset="0.58" stop-color="#0E7490"/>
-      <stop offset="1" stop-color="#D97706"/>
+      <stop offset="0.55" stop-color="#0E7490"/>
+      <stop offset="1" stop-color="#F59E0B"/>
     </linearGradient>
-    <radialGradient id="glowA" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(950 148) rotate(128.939) scale(334.078 361.425)">
-      <stop stop-color="#7DD3FC" stop-opacity="0.55"/>
+    <radialGradient id="glowA" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(948 138) rotate(129) scale(330 350)">
+      <stop stop-color="#7DD3FC" stop-opacity="0.5"/>
       <stop offset="1" stop-color="#7DD3FC" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="glowB" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(227 89) rotate(64.342) scale(257.317 332.653)">
-      <stop stop-color="#FDE68A" stop-opacity="0.4"/>
+    <radialGradient id="glowB" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(248 108) rotate(72) scale(274 306)">
+      <stop stop-color="#FDE68A" stop-opacity="0.36"/>
       <stop offset="1" stop-color="#FDE68A" stop-opacity="0"/>
     </radialGradient>
   </defs>
@@ -18,26 +18,26 @@
   <rect width="1200" height="630" rx="36" fill="url(#glowA)"/>
   <rect width="1200" height="630" rx="36" fill="url(#glowB)"/>
 
-  <rect x="66" y="66" width="1068" height="498" rx="28" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.22)"/>
-  <rect x="108" y="116" width="626" height="278" rx="24" fill="rgba(5,15,35,0.25)" stroke="rgba(255,255,255,0.16)"/>
-  <rect x="780" y="116" width="308" height="120" rx="24" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.16)"/>
-  <rect x="780" y="256" width="308" height="138" rx="24" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.16)"/>
-  <rect x="108" y="426" width="980" height="92" rx="24" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.16)"/>
+  <rect x="62" y="62" width="1076" height="506" rx="30" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.18)"/>
+  <rect x="108" y="122" width="642" height="286" rx="26" fill="rgba(7,17,40,0.26)" stroke="rgba(255,255,255,0.15)"/>
+  <rect x="790" y="122" width="300" height="126" rx="24" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.14)"/>
+  <rect x="790" y="268" width="300" height="140" rx="24" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.14)"/>
+  <rect x="108" y="430" width="982" height="92" rx="24" fill="rgba(255,255,255,0.16)" stroke="rgba(255,255,255,0.14)"/>
 
-  <circle cx="246" cy="242" r="46" fill="#BAE6FD" fill-opacity="0.92"/>
-  <circle cx="332" cy="196" r="28" fill="#F9A8D4" fill-opacity="0.88"/>
-  <circle cx="420" cy="258" r="36" fill="#86EFAC" fill-opacity="0.88"/>
-  <circle cx="534" cy="208" r="24" fill="#FDE68A" fill-opacity="0.88"/>
-  <path d="M202 286C248 236 302 206 350 206C401 206 430 265 480 265C534 265 564 196 626 176" stroke="white" stroke-width="10" stroke-linecap="round" stroke-dasharray="1 20"/>
+  <circle cx="248" cy="246" r="48" fill="#BAE6FD" fill-opacity="0.94"/>
+  <circle cx="336" cy="200" r="28" fill="#F9A8D4" fill-opacity="0.9"/>
+  <circle cx="426" cy="260" r="36" fill="#86EFAC" fill-opacity="0.9"/>
+  <circle cx="540" cy="212" r="24" fill="#FDE68A" fill-opacity="0.9"/>
+  <path d="M202 290C248 238 302 208 352 208C404 208 432 266 484 266C538 266 570 196 628 180" stroke="white" stroke-width="10" stroke-linecap="round" stroke-dasharray="1 20"/>
 
   <text x="110" y="104" fill="#DBEAFE" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" letter-spacing="4">MBTA · REALTIME</text>
-  <text x="108" y="470" fill="white" font-family="Georgia, 'Times New Roman', serif" font-size="64" font-weight="700">A premium transit</text>
-  <text x="108" y="542" fill="#FDF2F8" font-family="Georgia, 'Times New Roman', serif" font-size="64" font-weight="700">command center for Boston</text>
+  <text x="108" y="466" fill="white" font-family="Georgia, 'Times New Roman', serif" font-size="62" font-weight="700">Boston transit,</text>
+  <text x="108" y="538" fill="#E0F2FE" font-family="Georgia, 'Times New Roman', serif" font-size="62" font-weight="700">but faster to use</text>
 
   <text x="806" y="162" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700">Live fleet</text>
-  <text x="806" y="212" fill="#DBEAFE" font-family="Arial, Helvetica, sans-serif" font-size="46" font-weight="700">Nearby-first</text>
-  <text x="806" y="300" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700">Highlights</text>
-  <text x="806" y="346" fill="#F8FAFC" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">Curated views</text>
-  <text x="806" y="380" fill="#F8FAFC" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">Fast embeds</text>
-  <text x="806" y="414" fill="#F8FAFC" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">Realtime alerts</text>
+  <text x="806" y="212" fill="#DBEAFE" font-family="Arial, Helvetica, sans-serif" font-size="44" font-weight="700">Nearby-first</text>
+  <text x="806" y="300" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700">What you get</text>
+  <text x="806" y="346" fill="#F8FAFC" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">Fast search</text>
+  <text x="806" y="380" fill="#F8FAFC" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">Compact insights</text>
+  <text x="806" y="414" fill="#F8FAFC" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">Shareable pages</text>
 </svg>

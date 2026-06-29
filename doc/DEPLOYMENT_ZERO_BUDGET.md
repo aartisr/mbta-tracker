@@ -46,8 +46,9 @@ This is the single deployment checklist for the repo. It is the free Cloudflare 
    - Leave the deploy command at the Cloudflare default unless your account UI requires a custom value.
 
 4. Set the Pages environment variables.
-   - `PUBLIC_WS_URL=wss://<worker-name>.<subdomain>.workers.dev/ws`
-   - `PUBLIC_API_BASE_URL` is optional and only needed if you deliberately move the API off the Pages origin.
+  - `PUBLIC_WS_URL=wss://<worker-name>.<subdomain>.workers.dev/ws`
+  - `PUBLIC_API_BASE_URL` is optional and only needed if you deliberately move the API off the Pages origin.
+  - `PUBLIC_CLARITY_PROJECT_ID=<your Microsoft Clarity project id>` enables session analytics if you want it.
 
 5. Add the Pages KV binding.
    - Add a KV namespace binding named `MBTA_API_STATE`.
