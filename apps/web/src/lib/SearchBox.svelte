@@ -618,17 +618,18 @@
 		grid-template-columns: auto 1fr auto auto auto auto;
 		align-items: center;
 		column-gap: 0.5rem;
-		border-color: #cbd5e1;
+		border-color: rgba(203, 213, 225, 0.95);
 		box-shadow:
-			0 1px 0 rgba(255, 255, 255, 0.7),
-			0 8px 16px rgba(15, 23, 42, 0.05);
+			0 1px 0 rgba(255, 255, 255, 0.72),
+			0 12px 24px rgba(15, 23, 42, 0.06);
+		background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.96));
 		transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
 
 		&:focus-within {
 			border-color: #60a5fa;
 			box-shadow:
 				0 0 0 3px rgba(37, 99, 235, 0.22),
-				0 10px 20px rgba(15, 23, 42, 0.08);
+				0 18px 30px rgba(15, 23, 42, 0.08);
 			transform: translateY(-1px);
 		}
 	}
@@ -725,12 +726,12 @@
 	.suggestions-dropdown {
 		@apply absolute top-full left-0 right-0 mt-2 border rounded-[1.15rem] z-50 max-h-80 overflow-y-auto;
 		background:
-			linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.98));
-		border-color: #cbd5e1;
+			linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 250, 255, 0.98));
+		border-color: rgba(203, 213, 225, 0.95);
 		box-shadow:
-			0 18px 42px rgba(15, 23, 42, 0.12),
-			inset 0 1px 0 rgba(255, 255, 255, 0.75);
-		backdrop-filter: blur(12px);
+			0 22px 50px rgba(15, 23, 42, 0.12),
+			inset 0 1px 0 rgba(255, 255, 255, 0.8);
+		backdrop-filter: blur(18px);
 		animation: dropdown-in 150ms ease-out;
 		transform-origin: top center;
 		contain: paint;
@@ -789,7 +790,9 @@
 		background:
 			linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(255, 255, 255, 0.96));
 		border-color: #d8e1ec;
-		box-shadow: 0 10px 20px rgba(15, 23, 42, 0.04);
+		box-shadow:
+			0 12px 24px rgba(15, 23, 42, 0.05),
+			inset 0 1px 0 rgba(255, 255, 255, 0.8);
 	}
 
 	.quick-group-head {
@@ -868,7 +871,7 @@
 			linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.98));
 		border-color: #cbd5e1;
 		box-shadow:
-			0 16px 32px rgba(15, 23, 42, 0.08),
+			0 18px 36px rgba(15, 23, 42, 0.08),
 			inset 0 1px 0 rgba(255, 255, 255, 0.7);
 		animation: panel-in 200ms ease-out;
 	}
@@ -1012,6 +1015,28 @@
 
 		.quick-group {
 			@apply px-2.5 py-2;
+		}
+
+		.quick-group-head {
+			@apply mb-1.5;
+		}
+
+		.quick-list {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 0.4rem;
+		}
+
+		.recent-row {
+			display: flex;
+			width: 100%;
+			min-width: 0;
+		}
+
+		.recent-item {
+			flex: 1 1 auto;
+			min-width: 0;
+			white-space: normal;
 		}
 
 		.history-item {

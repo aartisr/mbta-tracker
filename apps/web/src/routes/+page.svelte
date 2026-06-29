@@ -1162,7 +1162,7 @@
     <div class="footer-content">
       <p>Data from MBTA API • Updated in real-time</p>
       <p class="footer-ownership">
-        © 2026 <a href="https://ai-aarti.com" target="_blank" rel="noopener">Aarti S Ravikumar, PCSS II</a>
+        © 2026 <a href="https://ai-aarti.com" target="_blank" rel="noopener">Aarti S Ravikumar, Pioneer Charter School of Science II</a>
       </p>
       <p class="footer-credits" aria-label="Source credits">
         Credits: <a href="https://www.mbta.com/" target="_blank" rel="noopener">MBTA</a>,
@@ -1201,9 +1201,10 @@
     @apply m-0 p-0;
     overflow-x: clip;
     background:
-      radial-gradient(circle at 8% 6%, rgba(29, 78, 216, 0.12), transparent 34%),
-      radial-gradient(circle at 88% 8%, rgba(15, 118, 110, 0.1), transparent 34%),
-      linear-gradient(180deg, #f7f9fd 0%, #eef3f9 100%);
+      radial-gradient(circle at 8% 6%, rgba(29, 78, 216, 0.14), transparent 28%),
+      radial-gradient(circle at 92% 10%, rgba(15, 118, 110, 0.12), transparent 30%),
+      radial-gradient(circle at 50% 120%, rgba(148, 163, 184, 0.22), transparent 36%),
+      linear-gradient(180deg, #f8fbff 0%, #edf3f9 48%, #e9eef5 100%);
     color: var(--text-body);
     font-family: 'Manrope', 'Segoe UI', sans-serif;
   }
@@ -1298,9 +1299,13 @@
   }
 
   .app-header {
-    @apply sticky top-0 z-40 bg-white border-b;
-    border-color: var(--border-soft);
-    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    @apply sticky top-0 z-40 border-b;
+    background: rgba(255, 255, 255, 0.76);
+    border-color: rgba(216, 225, 236, 0.9);
+    box-shadow:
+      0 8px 30px rgba(15, 23, 42, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(18px);
     position: relative;
   }
 
@@ -1318,11 +1323,11 @@
 
   .main-nav {
     @apply flex items-center gap-1 flex-1 max-w-[31rem] p-1 rounded-full border;
-    background: rgba(248, 251, 255, 0.92);
-    border-color: #d8e3ef;
+    background: rgba(248, 251, 255, 0.82);
+    border-color: rgba(216, 227, 239, 0.95);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.9),
-      0 10px 20px rgba(15, 23, 42, 0.04);
+      inset 0 1px 0 rgba(255, 255, 255, 0.92),
+      0 14px 24px rgba(15, 23, 42, 0.05);
   }
 
   .nav-tab {
@@ -1341,8 +1346,8 @@
   }
 
   .nav-tab.active {
-    background: #1d4ed8;
-    box-shadow: 0 6px 14px rgba(29, 78, 216, 0.18);
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 48%, #1e40af 100%);
+    box-shadow: 0 10px 20px rgba(29, 78, 216, 0.22);
     color: #ffffff;
   }
 
@@ -1469,12 +1474,12 @@
     padding-top: 1.1rem;
     padding-bottom: 1rem;
     width: 100%;
-    background: rgba(255, 255, 255, 0.93);
-    border-color: var(--border-soft);
+    background: rgba(255, 255, 255, 0.82);
+    border-color: rgba(216, 225, 236, 0.95);
     box-shadow:
-      0 8px 24px rgba(15, 23, 42, 0.06),
-      inset 0 1px 0 rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(10px);
+      0 18px 45px rgba(15, 23, 42, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(18px);
     animation: panel-rise 420ms var(--ease-premium);
   }
 
@@ -1506,8 +1511,8 @@
 
   .hero-pill {
     @apply inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold border;
-    background: #f8fbff;
-    border-color: #d6e3f3;
+    background: linear-gradient(180deg, rgba(248, 251, 255, 0.96), rgba(239, 246, 255, 0.96));
+    border-color: rgba(214, 227, 243, 0.95);
     color: #1e3a8a;
     animation: chip-rise 240ms var(--ease-premium);
     animation-delay: calc(var(--stagger, 0) * 40ms);
@@ -1568,15 +1573,17 @@
 
   .starter-inline-item {
     @apply text-xs font-semibold rounded-full border px-3 py-1.5 text-left;
-    background: #f8fbff;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(243, 248, 255, 0.95));
     border-color: #c9dbf3;
     color: #1e3a8a;
-    transition: background 140ms ease, border-color 140ms ease;
+    transition: background 140ms ease, border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.04);
   }
 
   .starter-inline-item:hover {
     background: #edf4ff;
     border-color: #93c5fd;
+    transform: translateY(-1px);
   }
 
   .empty-results {
@@ -1646,9 +1653,11 @@
   .result-card {
     @apply w-full flex flex-col gap-2 p-4 border rounded-2xl transition-all text-left;
     min-height: 6.25rem;
-    background: var(--bg-elevated);
-    border-color: var(--border-soft);
-    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(216, 225, 236, 0.9);
+    box-shadow:
+      0 16px 36px rgba(15, 23, 42, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.78);
     animation: card-rise 300ms var(--ease-premium);
     animation-delay: calc(var(--stagger, 0) * 58ms);
     animation-fill-mode: both;
@@ -1657,9 +1666,9 @@
 
   .result-card:hover {
     border-color: var(--border-strong);
-    background: #f8fbff;
+    background: linear-gradient(180deg, rgba(251, 253, 255, 0.98), rgba(242, 247, 255, 0.98));
     transform: translateY(-2px) scale(1.002);
-    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+    box-shadow: 0 18px 34px rgba(15, 23, 42, 0.1);
   }
 
   .result-card:focus-visible,
@@ -1719,16 +1728,20 @@
   .boarding-panel {
     @apply mt-4 rounded-2xl border;
     padding: 1.05rem 1rem 1rem 1.35rem;
-    background: linear-gradient(145deg, #fbfdff 0%, #f3f8ff 100%);
-    border-color: #cddff6;
-    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    background: linear-gradient(145deg, rgba(251, 253, 255, 0.96) 0%, rgba(243, 248, 255, 0.96) 100%);
+    border-color: rgba(205, 223, 246, 0.95);
+    box-shadow:
+      0 18px 36px rgba(15, 23, 42, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.82);
   }
 
   .map-mode-panel {
     @apply mt-4 p-4 rounded-2xl border;
-    background: linear-gradient(150deg, #ecf5ff 0%, #f8fbff 100%);
-    border-color: #c6d6ea;
-    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    background: linear-gradient(150deg, rgba(236, 245, 255, 0.95) 0%, rgba(248, 251, 255, 0.97) 100%);
+    border-color: rgba(198, 214, 234, 0.95);
+    box-shadow:
+      0 18px 36px rgba(15, 23, 42, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
   }
 
   .map-mode-head {
@@ -1991,22 +2004,40 @@
 
   .app-footer {
     @apply border-t mt-8;
-    background: rgba(255, 255, 255, 0.74);
-    border-color: var(--border-soft);
-    backdrop-filter: blur(6px);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(248, 251, 255, 0.92)),
+      radial-gradient(circle at 8% 0%, rgba(29, 78, 216, 0.08), transparent 30%);
+    border-color: rgba(216, 225, 236, 0.9);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.05);
   }
 
   .footer-content {
-    @apply max-w-2xl mx-auto px-4 py-3 text-center text-xs;
+    @apply max-w-2xl mx-auto px-4 py-4 text-xs;
+    width: min(100%, 72rem);
+    padding-left: 1.15rem;
+    padding-right: 1.15rem;
+    text-align: left;
     color: var(--text-soft);
-    line-height: 1.6;
+    line-height: 1.55;
+    display: grid;
+    gap: 0.35rem;
   }
 
   .footer-ownership {
-    margin: 0.05rem 0 0;
+    margin: 0.1rem 0 0;
     font-size: 0.68rem;
-    color: #a8b3c4;
+    color: #7c8ca3;
     letter-spacing: 0.01em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    width: fit-content;
+    padding: 0.28rem 0.55rem;
+    border: 1px solid rgba(203, 213, 225, 0.8);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
   }
 
   .footer-ownership a {
@@ -2023,8 +2054,9 @@
   .footer-credits {
     margin: 0.05rem 0 0;
     font-size: 0.68rem;
-    color: #b1bccb;
-    line-height: 1.45;
+    color: #8b97a8;
+    line-height: 1.5;
+    max-width: 70ch;
   }
 
   .footer-credits a {
@@ -2166,7 +2198,8 @@
   }
 
   .footer-links {
-    @apply flex justify-center gap-4 mt-2;
+    @apply flex gap-4 mt-2;
+    justify-content: flex-start;
     flex-wrap: wrap;
   }
 
@@ -2182,17 +2215,45 @@
   /* Mobile */
   @media (max-width: 640px) {
     .header-layout {
-      @apply px-3 py-2 gap-1.5;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas:
+        'brand actions'
+        'nav nav';
+      align-items: center;
+      gap: 0.6rem 0.65rem;
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+    }
+
+    .app-logo {
+      grid-area: brand;
     }
 
     .main-nav {
-      @apply gap-0.5;
-      min-width: 0;
+      grid-area: nav;
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.35rem;
+      padding: 0.35rem;
+      border-radius: 1.05rem;
     }
 
     .nav-tab {
-      @apply px-2 py-1.5 text-[11px];
-      min-width: 0;
+      width: 100%;
+      min-height: 2.45rem;
+      padding: 0.7rem 0.3rem;
+      font-size: 0.72rem;
+      letter-spacing: 0.01em;
+    }
+
+    .header-actions {
+      grid-area: actions;
+    }
+
+    .header-layout {
+      @apply py-2;
     }
 
     .settings-panel {
@@ -2212,31 +2273,60 @@
 
     .search-container {
       @apply py-3;
-      padding-left: 1rem;
-      padding-right: 1rem;
+      padding-left: 0.85rem;
+      padding-right: 0.85rem;
       position: static;
+      border-radius: 1.15rem;
+      box-shadow:
+        0 12px 30px rgba(15, 23, 42, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.85);
     }
 
     .search-hero {
-      @apply flex-col gap-2;
+      @apply flex-col gap-1.5;
+      margin-bottom: 0.5rem;
     }
 
     .search-hero h2 {
-      @apply text-[1.05rem];
+      @apply text-[0.98rem];
+      max-width: 18ch;
+    }
+
+    .search-hero-pills {
+      margin-top: 0.45rem;
+      gap: 0.35rem;
+    }
+
+    .hero-pill {
+      padding: 0.35rem 0.55rem;
+      font-size: 0.68rem;
     }
 
     .search-guidance {
-      @apply px-2.5 py-2;
+      display: none;
     }
 
     .search-view {
-      @apply space-y-4;
+      @apply space-y-2.5;
     }
 
     .starter-inline {
       margin-top: 0.55rem;
       display: grid;
-      grid-template-columns: 1fr;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.35rem;
+      opacity: 0.84;
+    }
+
+    .starter-inline-item {
+      width: 100%;
+      white-space: normal;
+      font-size: 0.68rem;
+      padding: 0.5rem 0.55rem;
+      background: #f8fbff;
+      border-color: #d8e4f1;
+      box-shadow: none;
+      min-height: 2.3rem;
     }
 
     .results-head {
@@ -2261,6 +2351,31 @@
       padding: 0.9rem 0.9rem 0.9rem 1rem;
     }
 
+    .boarding-panel-head h3 {
+      @apply text-[0.98rem];
+    }
+
+    .boarding-panel-head p {
+      @apply text-xs;
+    }
+
+    .boarding-stop-top {
+      @apply flex-col items-start;
+    }
+
+    .boarding-meta {
+      @apply items-start;
+    }
+
+    .boarding-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .boarding-stop-card button {
+      min-height: 2.45rem;
+    }
+
     .map-mode-head {
       @apply flex-col items-start;
     }
@@ -2269,12 +2384,38 @@
       @apply justify-start;
     }
 
+    .map-mode-widget {
+      min-height: 20.5rem;
+    }
+
     .result-arrow {
       margin-top: 0.2rem;
     }
 
     .app-footer {
       margin-top: 1.75rem;
+      padding-left: 0.35rem;
+      padding-right: 0.35rem;
+    }
+
+    .footer-content {
+      padding-left: 0.9rem;
+      padding-right: 0.9rem;
+      gap: 0.42rem;
+    }
+
+    .footer-ownership {
+      font-size: 0.66rem;
+      padding: 0.24rem 0.5rem;
+    }
+
+    .footer-credits {
+      font-size: 0.65rem;
+    }
+
+    .footer-links {
+      gap: 0.9rem;
+      margin-top: 0.15rem;
     }
 
     .orb-three {
@@ -2284,14 +2425,33 @@
 
   @media (max-width: 420px) {
     .main-content {
-      padding-left: 0.62rem;
-      padding-right: 0.62rem;
+      padding-left: 0.6rem;
+      padding-right: 0.6rem;
+    }
+
+    .starter-inline {
+      grid-template-columns: 1fr;
+    }
+
+    .boarding-actions {
+      grid-template-columns: 1fr;
     }
   }
 
   @media (max-width: 360px) {
+    .header-layout {
+      padding-left: 0.55rem;
+      padding-right: 0.55rem;
+      gap: 0.45rem 0.5rem;
+    }
+
+    .nav-tab {
+      padding: 0.62rem 0.22rem;
+      font-size: 0.68rem;
+    }
+
     .search-hero h2 {
-      @apply text-[0.98rem];
+      @apply text-[0.92rem];
     }
 
     .search-hero-pills {
