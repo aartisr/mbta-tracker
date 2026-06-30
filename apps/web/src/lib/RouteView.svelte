@@ -277,6 +277,11 @@
 	.route-header {
 		@apply pb-4 border-b;
 		border-color: rgba(217, 230, 243, 0.9);
+		position: sticky;
+		top: 0;
+		z-index: 2;
+		backdrop-filter: blur(10px);
+		background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.82));
 	}
 
 	.route-kicker {
@@ -526,12 +531,24 @@
 
 	/* Mobile */
 	@media (max-width: 768px) {
+		.route-container {
+			padding: 0.85rem;
+		}
+
 		.stops-section {
 			@apply grid-cols-1;
 		}
 
 		.directions-split {
 			@apply grid-cols-1;
+		}
+
+		.route-header {
+			top: 0;
+		}
+
+		.route-name {
+			@apply text-xl;
 		}
 
 		.route-crowding-note {
@@ -554,6 +571,33 @@
 
 		.direction-group {
 			@apply p-2.5;
+		}
+
+		.stop-item {
+			@apply p-2.5;
+			align-items: flex-start;
+		}
+
+		.stop-marker {
+			@apply w-8 h-8;
+		}
+
+		.arrivals-panel {
+			@apply p-3;
+		}
+
+		.panel-title {
+			@apply text-sm;
+		}
+	}
+
+	@media (max-width: 420px) {
+		.stop-direction {
+			@apply text-[11px];
+		}
+
+		.crowding-dot {
+			@apply text-[9px];
 		}
 	}
 

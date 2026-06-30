@@ -58,13 +58,13 @@
 	$: delayDisplay = isDelayed ? `${Math.round(arrival.delay_seconds / 60)} min delay` : null;
 </script>
 
-<div
+<button
 	class="arrival-card"
+	type="button"
 	on:click={onClick}
-	role="button"
-	tabindex="0"
-	on:keydown={(e) => {
-		if (e.key === 'Enter' || e.key === ' ') {
+	on:keydown={(event) => {
+		if (event.key === 'Enter' || event.key === ' ') {
+			event.preventDefault();
 			onClick();
 		}
 	}}
@@ -125,15 +125,23 @@
 			<div class="platform-info">Platform {arrival.platform}</div>
 		{/if}
 	</div>
-</div>
+</button>
 
 <style lang="postcss">
 	.arrival-card {
-		@apply flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer;
+		@apply flex items-start gap-3 p-3 rounded-2xl border border-gray-200 transition-colors cursor-pointer text-left w-full;
+		background:
+			radial-gradient(circle at top right, rgba(219, 234, 254, 0.35), transparent 24%),
+			linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.98));
+		box-shadow:
+			0 10px 24px rgba(15, 23, 42, 0.05),
+			inset 0 1px 0 rgba(255, 255, 255, 0.8);
+		min-height: 4.75rem;
 	}
 
 	.route-badge {
-		@apply flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded font-semibold text-black text-sm;
+		@apply flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-2xl font-semibold text-black text-sm;
+		min-width: 3.5rem;
 	}
 
 	.route-number {
@@ -146,6 +154,7 @@
 
 	.arrival-info {
 		@apply flex-1;
+		min-width: 0;
 	}
 
 	.arrival-header {
@@ -154,14 +163,17 @@
 
 	.destination {
 		@apply flex flex-col;
+		min-width: 0;
 	}
 
 	.mode {
-		@apply text-xs font-semibold uppercase text-gray-500 tracking-wider;
+		@apply text-[10px] font-semibold uppercase text-gray-500 tracking-wider;
 	}
 
 	.headsign {
 		@apply text-sm font-semibold text-gray-900;
+		line-height: 1.35;
+		word-break: break-word;
 	}
 
 	.timing {
@@ -169,7 +181,7 @@
 	}
 
 	.eta {
-		@apply text-lg font-bold text-green-600;
+		@apply text-lg font-bold text-green-700;
 	}
 
 	.timing.delayed .eta {
@@ -222,14 +234,19 @@
 	}
 
 	/* Focus styles for keyboard navigation */
-	:global(.arrival-card:focus) {
+	:global(.arrival-card:focus-visible) {
 		@apply outline-none ring-2 ring-blue-500 ring-offset-2;
 	}
 
 	/* Mobile */
 	@media (max-width: 640px) {
 		.arrival-card {
-			@apply gap-2 p-2;
+			@apply gap-2 p-2.5;
+			min-height: 4.2rem;
+		}
+
+		.route-badge {
+			min-width: 3.15rem;
 		}
 
 		.headsign {
@@ -238,6 +255,14 @@
 
 		.eta {
 			@apply text-base;
+		}
+
+		.arrival-header {
+			@apply gap-2;
+		}
+
+		.timing {
+			@apply gap-1.5;
 		}
 	}
 

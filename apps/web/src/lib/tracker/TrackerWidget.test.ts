@@ -5,10 +5,11 @@ import { DEFAULT_TRACKER_CONFIG } from './config';
 import { createMockGeoRepository, createMockRepository, createTestContainer, sampleStop } from './testing/test-utils';
 import type { RealtimeTransport } from './services';
 
-type TransportEvent = 'data' | 'error' | 'close';
+type TransportEvent = 'open' | 'data' | 'error' | 'close';
 
 function createCapturingTransport() {
   const handlers: Record<TransportEvent, Array<(payload: any) => void>> = {
+    open: [],
     data: [],
     error: [],
     close: []

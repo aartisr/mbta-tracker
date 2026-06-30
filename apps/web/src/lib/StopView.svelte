@@ -511,6 +511,11 @@
 	.stop-header {
 		@apply flex items-start justify-between gap-4 p-1 pb-4 border-b;
 		border-color: rgba(217, 230, 243, 0.9);
+		position: sticky;
+		top: 0;
+		z-index: 2;
+		backdrop-filter: blur(10px);
+		background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.82));
 	}
 
 	.stop-info {
@@ -899,8 +904,13 @@
 
 	/* Mobile */
 	@media (max-width: 640px) {
+		.stop-view {
+			padding: 0.85rem;
+		}
+
 		.stop-header {
 			@apply flex-col gap-2;
+			top: 0;
 		}
 
 		.stop-name {
@@ -909,6 +919,10 @@
 
 		.header-actions {
 			@apply self-end;
+		}
+
+		.location-badge {
+			@apply w-full justify-center;
 		}
 
 		.arrivals-content {
@@ -923,8 +937,49 @@
 			grid-template-columns: 1fr;
 		}
 
+		.boarding-controls input,
+		.boarding-controls select,
+		.boarding-button {
+			width: 100%;
+			min-height: 2.65rem;
+		}
+
+		.boarding-button {
+			@apply text-sm;
+		}
+
+		.boarding-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.arrival-detail-grid {
+			grid-template-columns: 1fr 1fr;
+		}
+
 		.arrival-detail-head {
 			@apply flex-col items-start;
+		}
+
+		.arrival-detail-close {
+			@apply self-end;
+		}
+
+		.alert-item {
+			@apply flex-col;
+		}
+
+		.alert-badge {
+			@apply text-base;
+		}
+	}
+
+	@media (max-width: 420px) {
+		.crowding-timeline {
+			grid-template-columns: 1fr;
+		}
+
+		.arrival-detail-grid {
+			grid-template-columns: 1fr;
 		}
 	}
 

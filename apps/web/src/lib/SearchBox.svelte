@@ -371,6 +371,8 @@
 				on:input={handleInput}
 				on:keydown={handleKeyDown}
 				on:focus={() => (isOpen = searchInput.length >= 2 && suggestions.length > 0)}
+				inputmode="search"
+				enterkeyhint="search"
 				class="search-input"
 				aria-label="Search for routes, stops, addresses, or vehicles"
 				aria-autocomplete="list"
@@ -664,10 +666,12 @@
 	}
 
 	.voice-button {
-		@apply text-lg flex-shrink-0 transition-colors;
+		@apply text-lg flex-shrink-0 transition-colors inline-flex items-center justify-center rounded-full;
+		width: 2.15rem;
+		height: 2.15rem;
 		color: #64748b;
 		line-height: 1;
-		padding: 0.15rem;
+		padding: 0;
 
 		&:hover {
 			color: #1d4ed8;
@@ -686,10 +690,10 @@
 	}
 
 	.clear-button {
-		@apply rounded-full transition-colors;
+		@apply rounded-full transition-colors inline-flex items-center justify-center;
 		color: #64748b;
-		width: 1.75rem;
-		height: 1.75rem;
+		width: 2.15rem;
+		height: 2.15rem;
 		line-height: 1;
 
 		&:hover {
@@ -699,11 +703,12 @@
 	}
 
 	.search-button {
-		@apply border rounded-full text-xs font-semibold transition-colors;
+		@apply border rounded-full text-xs font-semibold transition-colors inline-flex items-center justify-center;
 		background: #1d4ed8;
 		border-color: #1e40af;
 		color: #ffffff;
-		padding: 0.5rem 0.8rem;
+		padding: 0.55rem 0.9rem;
+		min-height: 2.25rem;
 		white-space: nowrap;
 
 		&:hover:enabled {
@@ -717,9 +722,9 @@
 	}
 
 	.favorite-button {
-		@apply rounded-full transition-colors text-xs font-semibold border;
-		width: 2rem;
-		height: 2rem;
+		@apply rounded-full transition-colors text-xs font-semibold border inline-flex items-center justify-center;
+		width: 2.15rem;
+		height: 2.15rem;
 		line-height: 1;
 		border-color: #fcd34d;
 		background: #fffbeb;
@@ -1003,10 +1008,6 @@
 			column-gap: 0.4rem;
 		}
 
-		.voice-button {
-			display: none;
-		}
-
 		.search-button {
 			padding: 0.46rem 0.72rem;
 			min-height: 2.45rem;
@@ -1039,7 +1040,7 @@
 
 		.quick-list {
 			display: grid;
-			grid-template-columns: repeat(2, minmax(0, 1fr));
+			grid-template-columns: 1fr;
 			gap: 0.4rem;
 		}
 
@@ -1053,11 +1054,22 @@
 			flex: 1 1 auto;
 			min-width: 0;
 			white-space: normal;
-			min-height: 2.45rem;
+			min-height: 2.65rem;
 		}
 
 		.history-item {
 			@apply px-2 py-1.5 text-xs;
+		}
+
+		.suggestions-dropdown {
+			position: fixed;
+			left: 0.75rem;
+			right: 0.75rem;
+			top: auto;
+			bottom: calc(env(safe-area-inset-bottom, 0px) + 0.75rem);
+			margin-top: 0;
+			max-height: min(48vh, 24rem);
+			border-radius: 1.35rem 1.35rem 1rem 1rem;
 		}
 	}
 

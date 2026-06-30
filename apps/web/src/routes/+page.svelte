@@ -749,11 +749,12 @@
   </script>
 </svelte:head>
 
-  <div
-    class="page-container"
-    class:high-contrast={highContrastEnabled}
-    class:dyslexia-font={dyslexiaFontEnabled}
-  >
+<div
+  class="page-container"
+  class:high-contrast={highContrastEnabled}
+  class:dyslexia-font={dyslexiaFontEnabled}
+>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
     <div class="ambient-layers" aria-hidden="true">
       <span class="ambient-orb orb-one"></span>
       <span class="ambient-orb orb-two"></span>
@@ -876,7 +877,7 @@
 
     <!-- Main Content -->
     <div class="layout-container">
-      <main class="main-content">
+      <main class="main-content" id="main-content">
     {#if currentView === 'search'}
       <!-- Search View -->
       <div class="search-view">
@@ -884,7 +885,8 @@
           <section class="search-hero" aria-labelledby="search-hero-title">
             <div class="search-hero-copy">
               <p class="search-hero-kicker">Search-first transit</p>
-              <h2 id="search-hero-title">Find the best MBTA option fast.</h2>
+              <h2 id="search-hero-title">Find the next MBTA answer fast.</h2>
+              <p class="search-hero-subtext">Live data is labeled, cached data is clearly marked, and offline fallback never pretends to be live.</p>
               <div class="search-hero-pills" aria-label="How the experience works">
                 {#each searchPrinciples as principle, index}
                   <span class="hero-pill" style={`--stagger:${index};`}>{principle}</span>
@@ -1244,6 +1246,26 @@
     overflow: clip;
   }
 
+  .skip-link {
+    position: absolute;
+    left: 1rem;
+    top: 0.75rem;
+    z-index: 80;
+    padding: 0.65rem 0.85rem;
+    border-radius: 999px;
+    background: #0f172a;
+    color: #ffffff;
+    text-decoration: none;
+    transform: translateY(-140%);
+    transition: transform 160ms ease;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
+  }
+
+  .skip-link:focus {
+    transform: translateY(0);
+    outline: none;
+  }
+
   .page-container.high-contrast {
     --bg-base: #ffffff;
     --bg-elevated: #ffffff;
@@ -1546,6 +1568,13 @@
     color: var(--text-strong);
     letter-spacing: -0.02em;
     line-height: 1.18;
+  }
+
+  .search-hero-subtext {
+    @apply m-0 mt-1 text-xs;
+    color: var(--text-soft);
+    max-width: 42rem;
+    line-height: 1.5;
   }
 
   .search-hero-pills {
@@ -2274,6 +2303,11 @@
 
   /* Mobile */
   @media (max-width: 640px) {
+    .skip-link {
+      left: 0.65rem;
+      top: 0.65rem;
+    }
+
     .header-layout {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
@@ -2354,6 +2388,11 @@
     .search-hero h2 {
       @apply text-[1rem];
       max-width: 22ch;
+    }
+
+    .search-hero-subtext {
+      @apply text-[11px];
+      max-width: none;
     }
 
     .search-hero-pills {
@@ -2521,6 +2560,10 @@
 
     .search-hero h2 {
       @apply text-[0.98rem];
+    }
+
+    .search-hero-subtext {
+      @apply text-[10px];
     }
 
     .search-hero-pills {
