@@ -62,10 +62,80 @@
   }> = [];
   let boardingLegendEl: HTMLDivElement | null = null;
   let isBoardingLegendCollapsed = false;
+  let parallaxOffset = 0;
+  let showOnboardingHint = false;
+  let onboardingVariant: 'address' | 'route' = 'address';
+  let onboardingPrimaryIntent: 'address' | 'route' = 'address';
+  let onboardingPrimaryAction = 'Try address flow';
+  let onboardingHeadline = 'Start with your address, then pick the best nearby boarding stop.';
+  let onboardingTip = 'Great for first-time riders and unfamiliar neighborhoods.';
+  let onboardingWhy = 'Why this suggestion: address-first is easiest for most first-time riders.';
+  let onboardingProfile = {
+    addressCount: 0,
+    routeCount: 0,
+    mapCount: 0
+  };
 
   const quickQueries = ['South Station now', 'Alewife', 'Red Line', '66', 'Harvard'];
   const searchPrinciples = ['Fast boarding', 'Live arrivals', 'Map on demand'];
+  type WorkflowIntent = {
+    id: 'address' | 'route' | 'alerts' | 'map';
+    title: string;
+    description: string;
+    actionLabel: string;
+    query?: string;
+  };
+
+  const workflowIntents: WorkflowIntent[] = [
+    {
+      id: 'address',
+      title: 'Find nearest stop',
+      description: 'Best for when you are starting from an address.',
+      actionLabel: 'Use address flow',
+      query: '878 Salem St, Malden MA'
+    },
+    {
+      id: 'route',
+      title: 'Track a line fast',
+      description: 'Jump straight into a route like Red Line or 66.',
+      actionLabel: 'Use route flow',
+      query: 'Red Line'
+    },
+    {
+      id: 'alerts',
+      title: 'Check disruptions',
+      description: 'Open system alerts first when service feels unstable.',
+      actionLabel: 'Open alerts'
+    },
+    {
+      id: 'map',
+      title: 'Open map context',
+      description: 'Switch to map mode without leaving search.',
+      actionLabel: 'Enable map mode'
+    }
+  ];
   const ACCESSIBILITY_PREFS_KEY = 'mbta_accessibility_prefs_v1';
+  const ONBOARDING_HINT_KEY = 'mbta_onboarding_hint_dismissed_v1';
+  const ONBOARDING_VARIANT_KEY = 'mbta_onboarding_variant_v1';
+  const ONBOARDING_PROFILE_KEY = 'mbta_onboarding_profile_v1';
+
+  $: isDetailView = currentView === 'stop' || currentView === 'route' || currentView === 'vehicle' || currentView === 'alerts';
+  $: journeyStep = isDetailView ? 3 : lastQuery ? 2 : 1;
+  $: onboardingPrimaryIntent = (onboardingVariant === 'route' ? 'route' : 'address') as 'address' | 'route';
+  $: onboardingPrimaryAction = onboardingVariant === 'route' ? 'Try route flow' : 'Try address flow';
+  $: onboardingHeadline = onboardingVariant === 'route'
+    ? 'Start with a route, then pick the fastest boarding stop from live results.'
+    : 'Start with your address, then pick the best nearby boarding stop.';
+  $: onboardingTip = onboardingVariant === 'route'
+    ? 'Great for repeat commuters who already know their line.'
+    : 'Great for first-time riders and unfamiliar neighborhoods.';
+  $: onboardingWhy = onboardingVariant === 'route'
+    ? onboardingProfile.routeCount + onboardingProfile.mapCount > onboardingProfile.addressCount
+      ? `Why this suggestion: your recent actions leaned route/map-first (${onboardingProfile.routeCount} route, ${onboardingProfile.mapCount} map).`
+      : 'Why this suggestion: route-first helps when you already know your line.'
+    : onboardingProfile.addressCount >= onboardingProfile.routeCount + onboardingProfile.mapCount
+      ? `Why this suggestion: your recent actions leaned address-first (${onboardingProfile.addressCount} address-style searches).`
+      : 'Why this suggestion: address-first is easiest for first-time riders and new areas.';
 
   $: searchResultBreakdown = searchResults.reduce(
     (acc, result) => {
@@ -114,6 +184,178 @@
 
   function closeSettingsMenu() {
     settingsMenuOpen = false;
+  }
+
+  function resetPersonalization() {
+    onboardingProfile = {
+      addressCount: 0,
+      routeCount: 0,
+      mapCount: 0
+    };
+    onboardingVariant = 'address';
+    showOnboardingHint = true;
+
+    if (browser) {
+      try {
+        localStorage.removeItem(ONBOARDING_PROFILE_KEY);
+        localStorage.removeItem(ONBOARDING_VARIANT_KEY);
+        localStorage.removeItem(ONBOARDING_HINT_KEY);
+      } catch {
+        // Ignore storage failures.
+      }
+    }
+
+    void track('personalization_reset', { source: 'settings' });
+    routeInfoMessage = 'Personalization reset. Guidance has been restored.';
+    closeSettingsMenu();
+  }
+
+  function looksLikeRouteQuery(value: string): boolean {
+    const query = value.trim().toLowerCase();
+    if (!query) {
+      return false;
+    }
+
+    return /^\d{1,3}[a-z]?$/.test(query)
+      || /\b(route|line)\b/.test(query)
+      || /\b(red|green|orange|blue|silver|mattapan)\b/.test(query);
+  }
+
+  function inferSearchIntent(value: string): 'address' | 'route' | null {
+    if (looksLikeAddressQuery(value)) {
+      return 'address';
+    }
+
+    if (looksLikeRouteQuery(value)) {
+      return 'route';
+    }
+
+    return null;
+  }
+
+  function getPreferredOnboardingVariant(profile: typeof onboardingProfile, fallback: 'address' | 'route'): 'address' | 'route' {
+    const routeWeight = profile.routeCount + Math.round(profile.mapCount * 0.7);
+    const addressWeight = profile.addressCount;
+
+    if (routeWeight - addressWeight >= 1) {
+      return 'route';
+    }
+
+    if (addressWeight - routeWeight >= 1) {
+      return 'address';
+    }
+
+    return fallback;
+  }
+
+  function loadOnboardingProfile() {
+    if (!browser) {
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem(ONBOARDING_PROFILE_KEY);
+      if (!stored) {
+        return;
+      }
+
+      const parsed = JSON.parse(stored) as {
+        addressCount?: number;
+        routeCount?: number;
+        mapCount?: number;
+      };
+
+      onboardingProfile = {
+        addressCount: Math.max(0, Number(parsed.addressCount) || 0),
+        routeCount: Math.max(0, Number(parsed.routeCount) || 0),
+        mapCount: Math.max(0, Number(parsed.mapCount) || 0)
+      };
+    } catch {
+      // Ignore malformed onboarding profile payloads.
+    }
+  }
+
+  function saveOnboardingProfile() {
+    if (!browser) {
+      return;
+    }
+
+    try {
+      localStorage.setItem(ONBOARDING_PROFILE_KEY, JSON.stringify(onboardingProfile));
+    } catch {
+      // Ignore storage write failures.
+    }
+  }
+
+  function recordOnboardingSignal(signal: 'address' | 'route' | 'map', source: string) {
+    if (signal === 'address') {
+      onboardingProfile.addressCount += 1;
+    } else if (signal === 'route') {
+      onboardingProfile.routeCount += 1;
+    } else {
+      onboardingProfile.mapCount += 1;
+    }
+
+    saveOnboardingProfile();
+
+    const nextVariant = getPreferredOnboardingVariant(onboardingProfile, onboardingVariant);
+    if (nextVariant !== onboardingVariant) {
+      const previousVariant = onboardingVariant;
+      onboardingVariant = nextVariant;
+
+      if (browser) {
+        try {
+          localStorage.setItem(ONBOARDING_VARIANT_KEY, onboardingVariant);
+        } catch {
+          // Ignore storage write failures.
+        }
+      }
+
+      void track('onboarding_variant_shifted', {
+        source,
+        from: previousVariant,
+        to: nextVariant,
+        address_count: onboardingProfile.addressCount,
+        route_count: onboardingProfile.routeCount,
+        map_count: onboardingProfile.mapCount
+      });
+    }
+  }
+
+  function resolveOnboardingVariant(): 'address' | 'route' {
+    if (!browser) {
+      return 'address';
+    }
+
+    try {
+      const stored = localStorage.getItem(ONBOARDING_VARIANT_KEY);
+      if (stored === 'address' || stored === 'route') {
+        return stored;
+      }
+
+      const chosen: 'address' | 'route' = Math.random() < 0.5 ? 'address' : 'route';
+      localStorage.setItem(ONBOARDING_VARIANT_KEY, chosen);
+      return chosen;
+    } catch {
+      return 'address';
+    }
+  }
+
+  function completeOnboarding(source: string) {
+    if (!showOnboardingHint) {
+      return;
+    }
+
+    showOnboardingHint = false;
+    if (browser) {
+      try {
+        localStorage.setItem(ONBOARDING_HINT_KEY, '1');
+      } catch {
+        // Ignore storage write failures.
+      }
+    }
+
+    void track('onboarding_hint_dismissed', { source });
   }
 
   function looksLikeAddressQuery(value: string): boolean {
@@ -234,6 +476,22 @@
     }
 
     try {
+      const dismissed = localStorage.getItem(ONBOARDING_HINT_KEY) === '1';
+      showOnboardingHint = !dismissed;
+      loadOnboardingProfile();
+      onboardingVariant = getPreferredOnboardingVariant(onboardingProfile, resolveOnboardingVariant());
+    } catch {
+      showOnboardingHint = true;
+      onboardingVariant = 'address';
+    }
+  });
+
+  onMount(() => {
+    if (!browser) {
+      return;
+    }
+
+    try {
       const stored = localStorage.getItem(ACCESSIBILITY_PREFS_KEY);
       if (!stored) {
         return;
@@ -316,12 +574,58 @@
     };
   });
 
-  async function handleSearch(query: string) {
+  onMount(() => {
+    if (!browser) {
+      return;
+    }
+
+    const desktopMedia = window.matchMedia('(min-width: 1025px)');
+    const reduceMotionMedia = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    const updateParallax = () => {
+      if (!desktopMedia.matches || reduceMotionMedia.matches) {
+        parallaxOffset = 0;
+        return;
+      }
+
+      const scrollY = Math.max(0, window.scrollY || 0);
+      parallaxOffset = Math.min(34, scrollY * 0.045);
+    };
+
+    const handleWindowChange = () => updateParallax();
+
+    window.addEventListener('scroll', handleWindowChange, { passive: true });
+    window.addEventListener('resize', handleWindowChange);
+    desktopMedia.addEventListener('change', handleWindowChange);
+    reduceMotionMedia.addEventListener('change', handleWindowChange);
+    updateParallax();
+
+    return () => {
+      window.removeEventListener('scroll', handleWindowChange);
+      window.removeEventListener('resize', handleWindowChange);
+      desktopMedia.removeEventListener('change', handleWindowChange);
+      reduceMotionMedia.removeEventListener('change', handleWindowChange);
+    };
+  });
+
+  async function handleSearch(
+    query: string,
+    options: { skipIntentInference?: boolean } = {}
+  ) {
     const startedAt = Date.now();
     const trimmedQuery = query.trim();
     if (!trimmedQuery) {
       return;
     }
+
+    if (!options.skipIntentInference) {
+      const inferredIntent = inferSearchIntent(trimmedQuery);
+      if (inferredIntent) {
+        recordOnboardingSignal(inferredIntent, 'search_query');
+      }
+    }
+
+    completeOnboarding('search_submit');
 
     isSearching = true;
     searchError = null;
@@ -373,6 +677,38 @@
     }
   }
 
+  async function executeWorkflowIntent(intentId: WorkflowIntent['id']) {
+    completeOnboarding(`workflow_${intentId}`);
+
+    if (intentId === 'alerts') {
+      currentView = 'alerts';
+      routeInfoMessage = 'System alerts opened. Search stays ready when you return.';
+      await track('workflow_intent_used', { intent: intentId });
+      return;
+    }
+
+    if (intentId === 'map') {
+      recordOnboardingSignal('map', 'workflow_map');
+      currentView = 'search';
+      switchHomeMode('map');
+      routeInfoMessage = 'Map mode is enabled. Search a stop or address to focus instantly.';
+      await track('workflow_intent_used', { intent: intentId });
+      return;
+    }
+
+    const intent = workflowIntents.find((item) => item.id === intentId);
+    if (!intent?.query) {
+      return;
+    }
+
+    if (intentId === 'address' || intentId === 'route') {
+      recordOnboardingSignal(intentId, `workflow_${intentId}`);
+    }
+
+    await handleSearch(intent.query, { skipIntentInference: true });
+    await track('workflow_intent_used', { intent: intentId });
+  }
+
   function goBack() {
     currentView = 'search';
     selectedStop = null;
@@ -395,6 +731,9 @@
   function handleMapTabClick() {
     currentView = 'search';
     switchHomeMode(homeMode === 'map' ? 'list' : 'map');
+    if (homeMode === 'list') {
+      recordOnboardingSignal('map', 'header_map_tab');
+    }
   }
 
   function focusStopOnMap(stop: StopResult, source: 'search_result' | 'boarding_panel') {
@@ -708,6 +1047,8 @@
   />
   <meta property="og:url" content={data.canonicalUrl} />
   <meta property="og:image" content={data.shareImageUrl} />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="MBTA Tracker premium social preview with live transit, search, and map context." />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="MBTA Tracker - Search First Transit" />
@@ -716,43 +1057,68 @@
     content="Search MBTA routes, stops, addresses, and vehicles with live arrivals, map context, and fast planning."
   />
   <meta name="twitter:image" content={data.shareImageUrl} />
+  <meta name="twitter:image:alt" content="MBTA Tracker premium social preview with live transit, search, and map context." />
   <meta name="theme-color" content="#f7f9fd" />
   <link rel="canonical" href={data.canonicalUrl} />
   <script type="application/ld+json">
     {JSON.stringify({
       '@context': 'https://schema.org',
-      '@type': 'WebApplication',
-      name: 'MBTA Tracker',
-      url: data.canonicalUrl,
-      description:
-        'Search routes, stops, addresses, and vehicles in one calm MBTA experience with live arrivals and map context.',
-      applicationCategory: 'TransportationApplication',
-      operatingSystem: 'Web',
-      browserRequirements: 'Requires a modern web browser',
-      image: data.shareImageUrl,
-      offers: {
-        '@type': 'Offer',
-        price: '0',
-        priceCurrency: 'USD'
-      },
-      potentialAction: {
-        '@type': 'SearchAction',
-        target: `${data.canonicalUrl}?q={search_term_string}`,
-        'query-input': 'required name=search_term_string'
-      },
-      publisher: {
-        '@type': 'Person',
-        name: 'Aarti S Ravikumar',
-        url: 'https://ai-aarti.com'
-      }
+      '@graph': [
+        {
+          '@type': 'WebSite',
+          '@id': `${data.canonicalUrl}#website`,
+          name: 'MBTA Tracker',
+          url: data.canonicalUrl,
+          inLanguage: 'en-US',
+          description:
+            'Search routes, stops, addresses, and vehicles in one calm MBTA experience with live arrivals and map context.',
+          potentialAction: {
+            '@type': 'SearchAction',
+            target: `${data.canonicalUrl}?q={search_term_string}`,
+            'query-input': 'required name=search_term_string'
+          },
+          publisher: {
+            '@id': `${new URL('/', data.canonicalUrl).toString()}#organization`
+          }
+        },
+        {
+          '@type': 'WebApplication',
+          '@id': `${data.canonicalUrl}#app`,
+          name: 'MBTA Tracker',
+          url: data.canonicalUrl,
+          isPartOf: {
+            '@id': `${data.canonicalUrl}#website`
+          },
+          applicationCategory: 'TransportationApplication',
+          operatingSystem: 'Web',
+          browserRequirements: 'Requires a modern web browser',
+          image: data.shareImageUrl,
+          inLanguage: 'en-US',
+          areaServed: {
+            '@type': 'City',
+            name: 'Boston'
+          },
+          isAccessibleForFree: true,
+          offers: {
+            '@type': 'Offer',
+            price: '0',
+            priceCurrency: 'USD'
+          },
+          publisher: {
+            '@id': `${new URL('/', data.canonicalUrl).toString()}#organization`
+          }
+        }
+      ]
     })}
   </script>
 </svelte:head>
 
 <div
+  id="page-top"
   class="page-container"
   class:high-contrast={highContrastEnabled}
   class:dyslexia-font={dyslexiaFontEnabled}
+  style={`--parallax-y: ${parallaxOffset}px;`}
 >
     <a class="skip-link" href="#main-content">Skip to main content</a>
     <div class="ambient-layers" aria-hidden="true">
@@ -763,7 +1129,10 @@
     <!-- Minimalist Header: Search + 3 Main Tabs + Menu -->
     <header class="app-header">
       <div class="header-layout">
-        <h1 class="app-logo">MBTA</h1>
+        <div class="brand-lockup" aria-label="MBTA Tracker home">
+          <h1 class="app-logo">MBTA</h1>
+          <p class="brand-tagline">Transit command center</p>
+        </div>
         <nav class="main-nav" aria-label="Primary navigation">
           <button
             class="nav-tab {currentView === 'search' ? 'active' : ''}"
@@ -771,7 +1140,11 @@
             aria-selected={currentView === 'search'}
             role="tab"
           >
-            Search
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"></circle>
+              <path d="M20 20l-3.8-3.8"></path>
+            </svg>
+            <span class="nav-label">Search</span>
           </button>
           <button
             class="nav-tab {homeMode === 'map' ? 'active' : ''}"
@@ -779,7 +1152,11 @@
             aria-selected={homeMode === 'map' && currentView === 'search'}
             role="tab"
           >
-            Map
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 4L3.8 6.1v13.8L9 17.8l6 2.1 5.2-2.1V4.1L15 6.2 9 4z"></path>
+              <path d="M9 4v13.8M15 6.2v13.7"></path>
+            </svg>
+            <span class="nav-label">Map</span>
           </button>
           <button
             class="nav-tab {currentView === 'alerts' ? 'active' : ''}"
@@ -787,14 +1164,42 @@
             aria-selected={currentView === 'alerts'}
             role="tab"
           >
-            Alerts
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3a6 6 0 0 0-6 6v3.5L4.3 16v1.5h15.4V16L18 12.5V9a6 6 0 0 0-6-6z"></path>
+              <path d="M10 19a2 2 0 0 0 4 0"></path>
+            </svg>
+            <span class="nav-label">Alerts</span>
             {#if currentAlerts.length > 0}
               <span class="alert-badge">{currentAlerts.length}</span>
             {/if}
           </button>
         </nav>
         <div class="header-actions">
-          <a class="share-link" href="/share">Share</a>
+          <span
+            class="live-pill"
+            data-state={currentAlerts.length > 0 ? 'alert' : 'live'}
+            aria-label={currentAlerts.length > 0 ? `${currentAlerts.length} active alerts` : 'Live service data'}
+          >
+            {#if currentAlerts.length > 0}
+              <svg class="live-icon" viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
+              </svg>
+              <span>{currentAlerts.length} alerts</span>
+            {:else}
+              <svg class="live-icon live-radar" viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">
+                <circle cx="12" cy="12" r="2" fill="currentColor"/>
+                <path d="M12 4a8 8 0 0 0-8 8h2a6 6 0 0 1 6-6 6 6 0 0 1 6 6h2a8 8 0 0 0-8-8z" fill="currentColor" opacity="0.6"/>
+                <path d="M12 1a11 11 0 0 0-11 11h2a9 9 0 0 1 9-9 9 9 0 0 1 9 9h2A11 11 0 0 0 12 1z" fill="currentColor" opacity="0.3"/>
+              </svg>
+              <span>Live</span>
+            {/if}
+          </span>
+          <a class="share-link" href="/share">
+            <svg class="share-icon" viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">
+              <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.15c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.44 9.31 6.73 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.73 0 1.44-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z" fill="currentColor"/>
+            </svg>
+            <span>Share</span>
+          </a>
           <button
             class="settings-button {settingsMenuOpen ? 'active' : ''}"
             bind:this={settingsButtonEl}
@@ -817,6 +1222,30 @@
             </svg>
           </button>
         </div>
+
+        {#if showOnboardingHint && currentView === 'search' && !lastQuery}
+          <section class="onboarding-hint" aria-label="First-time transit guidance">
+            <div class="onboarding-copy">
+              <p class="onboarding-kicker">First time here?</p>
+              <h3>{onboardingHeadline}</h3>
+              <p>{onboardingTip} Use one-tap workflows above for fastest results with less scrolling.</p>
+              <p class="onboarding-why">{onboardingWhy}</p>
+            </div>
+            <div class="onboarding-actions">
+              <button
+                class="onboarding-primary"
+                on:click={() => {
+                  completeOnboarding(`onboarding_try_${onboardingPrimaryIntent}`);
+                  void executeWorkflowIntent(onboardingPrimaryIntent);
+                }}
+              >
+                {onboardingPrimaryAction}
+              </button>
+              <button class="onboarding-alt" on:click={() => void executeWorkflowIntent('map')}>Open map first</button>
+              <button class="onboarding-dismiss" on:click={() => completeOnboarding('onboarding_got_it')}>Got it</button>
+            </div>
+          </section>
+        {/if}
       </div>
 
       <!-- Settings Menu (Hidden by Default) -->
@@ -861,6 +1290,13 @@
             >
               {showPhase4Hub ? '✓' : '○'} Trip Planning
             </button>
+            <button
+              class="setting-item"
+              on:click={resetPersonalization}
+              aria-label="Reset onboarding personalization"
+            >
+              ↺ Reset Personalization
+            </button>
           </div>
           <div class="settings-footer">
             <button
@@ -900,6 +1336,33 @@
             placeholder="Search stop, route, address, vehicle"
             autoFocus={true}
           />
+
+          <section class="workflow-rail" aria-label="Guided one-tap workflows">
+            <div class="workflow-rail-head">
+              <h3>Start with one clear action</h3>
+              <p>No guessing. Pick the flow that matches your intent.</p>
+            </div>
+            <div class="workflow-grid">
+              {#each workflowIntents as intent}
+                <button
+                  class="workflow-card"
+                  on:click={() => void executeWorkflowIntent(intent.id)}
+                  aria-label={`${intent.actionLabel}: ${intent.title}`}
+                >
+                  <span class="workflow-title">{intent.title}</span>
+                  <span class="workflow-description">{intent.description}</span>
+                  <span class="workflow-action">{intent.actionLabel}</span>
+                </button>
+              {/each}
+            </div>
+          </section>
+
+          <section class="journey-rail" aria-label="Current progress through transit workflow">
+            <span class="journey-step" class:is-active={journeyStep >= 1}>1. Search</span>
+            <span class="journey-step" class:is-active={journeyStep >= 2}>2. Pick</span>
+            <span class="journey-step" class:is-active={journeyStep >= 3}>3. Ride</span>
+            <span class="journey-tip">Shortcut: press / to focus search instantly.</span>
+          </section>
         </div>
 
         {#if isSearching}
@@ -930,7 +1393,7 @@
           </section>
 
           <section class="search-guidance" aria-label="Suggested search patterns">
-            <p>Use a route or stop when you know it. Use an address to find the nearest boarding stop.</p>
+            <p>Use route or stop when you know it. Use address for nearest boarding. Press / or Cmd/Ctrl+K to jump into search.</p>
           </section>
         {/if}
 
@@ -965,6 +1428,7 @@
               {#each searchResults as result, index}
                 <button
                   class="result-card"
+                  data-type={result.type}
                   style={`--stagger:${index};`}
                   aria-label={`${getResultActionLabel(result)} for ${getResultTitle(result)}`}
                   on:click={() => {
@@ -1187,10 +1651,104 @@
   </main>
   </div>
 
+  <nav class="mobile-thumb-nav" aria-label="Quick mobile navigation">
+    <button
+      class="thumb-tab {currentView === 'search' && homeMode === 'list' ? 'active' : ''}"
+      on:click={() => {
+        completeOnboarding('thumb_nav_search');
+        currentView = 'search';
+        homeMode = 'list';
+      }}
+      aria-current={currentView === 'search' && homeMode === 'list' ? 'page' : undefined}
+    >
+      <svg class="thumb-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"></circle>
+        <path d="M20 20l-3.8-3.8"></path>
+      </svg>
+      <span>Search</span>
+    </button>
+    <button
+      class="thumb-tab {currentView === 'search' && homeMode === 'map' ? 'active' : ''}"
+      on:click={() => {
+        completeOnboarding('thumb_nav_map');
+        recordOnboardingSignal('map', 'thumb_nav_map');
+        currentView = 'search';
+        switchHomeMode('map');
+      }}
+      aria-current={currentView === 'search' && homeMode === 'map' ? 'page' : undefined}
+    >
+      <svg class="thumb-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M9 4L3.8 6.1v13.8L9 17.8l6 2.1 5.2-2.1V4.1L15 6.2 9 4z"></path>
+        <path d="M9 4v13.8M15 6.2v13.7"></path>
+      </svg>
+      <span>Map</span>
+    </button>
+    <button
+      class="thumb-tab {currentView === 'alerts' ? 'active' : ''}"
+      on:click={() => {
+        completeOnboarding('thumb_nav_alerts');
+        currentView = 'alerts';
+      }}
+      aria-current={currentView === 'alerts' ? 'page' : undefined}
+    >
+      <svg class="thumb-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 3a6 6 0 0 0-6 6v3.5L4.3 16v1.5h15.4V16L18 12.5V9a6 6 0 0 0-6-6z"></path>
+        <path d="M10 19a2 2 0 0 0 4 0"></path>
+      </svg>
+      <span>Alerts</span>
+      {#if currentAlerts.length > 0}
+        <span class="thumb-badge">{currentAlerts.length}</span>
+      {/if}
+    </button>
+  </nav>
+
   <!-- Footer -->
   <footer class="app-footer">
     <div class="footer-content">
-      <p>Data from MBTA API • Updated in real-time</p>
+      <div class="footer-top">
+        <section class="footer-brand" aria-label="MBTA Tracker summary">
+          <p class="footer-title">MBTA Tracker</p>
+          <p class="footer-summary">Search-first transit that minimizes cognitive overload and keeps decisions fast.</p>
+          <p class="footer-live">Data from MBTA API • Updated in real-time</p>
+        </section>
+
+        <section class="footer-group" aria-label="Explore links">
+          <p class="footer-group-title">Explore</p>
+          <div class="footer-link-grid">
+            <a href="https://mbta.com" target="_blank" rel="noopener">
+              <svg class="footer-link-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4z"></path><path d="M7 9h10M7 12h10M7 15h6"></path></svg>
+              MBTA
+            </a>
+            <a href="/about">
+              <svg class="footer-link-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3"></circle><path d="M6 20a6 6 0 0 1 12 0"></path></svg>
+              About
+            </a>
+            <a href="/privacy">
+              <svg class="footer-link-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.4-2.5 8.1-7 10-4.5-1.9-7-5.6-7-10V6l7-3z"></path><path d="M9.5 12.5l1.8 1.8 3.5-3.5"></path></svg>
+              Privacy
+            </a>
+          </div>
+        </section>
+
+        <section class="footer-group" aria-label="Share and embed links">
+          <p class="footer-group-title">Share</p>
+          <div class="footer-link-grid">
+            <a href="/share">
+              <svg class="footer-link-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 8l-6 4 6 4"></path><path d="M9 12h9"></path><circle cx="6" cy="12" r="2"></circle><circle cx="18" cy="8" r="2"></circle><circle cx="18" cy="16" r="2"></circle></svg>
+              Share page
+            </a>
+            <a href="/embed">
+              <svg class="footer-link-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7l-5 5 5 5"></path><path d="M16 7l5 5-5 5"></path><path d="M14 4l-4 16"></path></svg>
+              Embed preview
+            </a>
+            <a href="#page-top">
+              <svg class="footer-link-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V6"></path><path d="M6.5 11.5L12 6l5.5 5.5"></path></svg>
+              Back to top
+            </a>
+          </div>
+        </section>
+      </div>
+
       <p class="footer-ownership">
         © 2026 <a href="https://ai-aarti.com" target="_blank" rel="noopener">Aarti S Ravikumar, Pioneer Charter School of Science II</a>
       </p>
@@ -1201,11 +1759,6 @@
         <a href="https://nominatim.org/" target="_blank" rel="noopener">Nominatim</a>,
         <a href="https://carto.com/" target="_blank" rel="noopener">CARTO</a>
       </p>
-      <div class="footer-links">
-        <a href="https://mbta.com" target="_blank" rel="noopener">MBTA</a>
-        <a href="/about">About</a>
-        <a href="/privacy">Privacy</a>
-      </div>
     </div>
   </footer>
 </div>
@@ -1226,7 +1779,6 @@
     --focus: rgba(37, 99, 235, 0.25);
     --ease-premium: cubic-bezier(0.2, 0.85, 0.2, 1);
   }
-
   :global(body) {
     @apply m-0 p-0;
     overflow-x: clip;
@@ -1311,6 +1863,9 @@
     inset: 0;
     pointer-events: none;
     z-index: 0;
+    transform: translate3d(0, calc(var(--parallax-y, 0px) * -0.35), 0);
+    transition: transform 240ms var(--ease-premium);
+    will-change: transform;
   }
 
   .ambient-orb {
@@ -1350,34 +1905,68 @@
 
   .app-header {
     @apply sticky top-0 z-40 border-b;
-    background: rgba(255, 255, 255, 0.76);
+    padding-top: env(safe-area-inset-top);
+    background:
+      linear-gradient(120deg, rgba(255, 255, 255, 0.84), rgba(243, 248, 255, 0.74)),
+      radial-gradient(circle at 8% 0%, rgba(29, 78, 216, 0.13), transparent 44%);
     border-color: rgba(216, 225, 236, 0.9);
     box-shadow:
-      0 8px 30px rgba(15, 23, 42, 0.08),
+      0 12px 34px rgba(15, 23, 42, 0.1),
       inset 0 1px 0 rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(18px);
+    backdrop-filter: blur(20px) saturate(128%);
     position: relative;
+    animation: header-settle 520ms var(--ease-premium);
+  }
+
+  .app-header::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(29, 78, 216, 0), rgba(29, 78, 216, 0.48), rgba(29, 78, 216, 0));
+    pointer-events: none;
+    animation: header-sheen 1100ms var(--ease-premium);
   }
 
   .header-layout {
-    @apply max-w-6xl mx-auto px-2.5 py-2 flex items-center justify-between gap-2;
+    @apply max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3;
     width: min(100%, 72rem);
+    min-height: 3.4rem;
+  }
+
+  .brand-lockup {
+    display: grid;
+    gap: 0.12rem;
+    min-width: 0;
+    padding-left: 0.2rem;
   }
 
   .app-logo {
     @apply text-[1.05rem] font-bold m-0 flex-shrink-0;
     color: var(--brand);
     font-family: 'Fraunces', serif;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.018em;
+    line-height: 1.05;
+  }
+
+  .brand-tagline {
+    margin: 0;
+    font-size: 0.63rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #64748b;
+    font-weight: 700;
   }
 
   .main-nav {
     @apply flex items-center gap-1 flex-1 max-w-[31rem] p-1 rounded-full border;
-    background: rgba(248, 251, 255, 0.82);
+    background: rgba(248, 251, 255, 0.88);
     border-color: rgba(216, 227, 239, 0.95);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.92),
-      0 14px 24px rgba(15, 23, 42, 0.05);
+      0 14px 24px rgba(15, 23, 42, 0.06);
   }
 
   .nav-tab {
@@ -1388,6 +1977,22 @@
     position: relative;
     white-space: nowrap;
     min-height: 2.1rem;
+  }
+
+  .nav-icon {
+    width: 0.95rem;
+    height: 0.95rem;
+    margin-right: 0.38rem;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+  }
+
+  .nav-label {
+    line-height: 1;
   }
 
   .nav-tab:hover {
@@ -1412,19 +2017,84 @@
     flex-shrink: 0;
   }
 
+  .live-pill {
+    @apply inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-all duration-300;
+    border-color: rgba(15, 118, 110, 0.3);
+    background: linear-gradient(135deg, rgba(15, 118, 110, 0.08) 0%, rgba(15, 118, 110, 0.04) 100%);
+    color: #0d6e68;
+    white-space: nowrap;
+    min-height: 2.2rem;
+    box-shadow: 0 1px 3px rgba(15, 118, 110, 0.12), inset 0 1px 2px rgba(255, 255, 255, 0.5);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .live-pill::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: live-shimmer 3000ms ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .live-pill span {
+    position: relative;
+    z-index: 1;
+  }
+
+  .live-icon {
+    position: relative;
+    z-index: 1;
+    animation: live-pulse 2000ms ease-in-out infinite;
+  }
+
+  .live-icon.live-radar {
+    animation: live-radar-sweep 2400ms linear infinite;
+  }
+
+  .live-pill[data-state='alert'] {
+    color: #be185d;
+    border-color: rgba(190, 24, 93, 0.3);
+    background: linear-gradient(135deg, rgba(190, 24, 93, 0.08) 0%, rgba(190, 24, 93, 0.04) 100%);
+    box-shadow: 0 1px 3px rgba(190, 24, 93, 0.12), inset 0 1px 2px rgba(255, 255, 255, 0.5);
+  }
+
   .share-link {
-    @apply inline-flex items-center justify-center px-3 py-1.5 text-[11px] font-semibold rounded-full border transition-colors;
-    border-color: rgba(148, 163, 184, 0.4);
-    color: var(--text-strong);
-    background: rgba(255, 255, 255, 0.78);
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-full border transition-all duration-300;
+    border-color: rgba(59, 130, 246, 0.25);
+    color: #1e40af;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.06) 0%, rgba(59, 130, 246, 0.02) 100%);
     text-decoration: none;
-    min-height: 2.1rem;
+    min-height: 2.2rem;
+    box-shadow: 0 1px 3px rgba(59, 130, 246, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.5);
+    position: relative;
+  }
+
+  .share-link::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    opacity: 0;
+    animation: share-shine 2500ms ease-in-out infinite;
+    pointer-events: none;
   }
 
   .share-link:hover {
-    background: #eef4ff;
-    border-color: rgba(37, 99, 235, 0.22);
-    color: #1e40af;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.06) 100%);
+    border-color: rgba(59, 130, 246, 0.4);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15), inset 0 1px 2px rgba(255, 255, 255, 0.6);
+    transform: translateY(-1px);
+  }
+
+  .share-icon {
+    transition: transform 200ms ease-out;
+  }
+
+  .share-link:hover .share-icon {
+    transform: translateX(2px);
   }
 
   .settings-button {
@@ -1517,27 +2187,24 @@
   }
 
   .main-content {
-    @apply flex-1 max-w-6xl mx-auto w-full px-5 py-7;
+    @apply flex-1 max-w-6xl mx-auto w-full px-4 py-5;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.8rem;
     position: relative;
     z-index: 1;
     width: min(100%, 72rem);
   }
 
   .search-view {
-    @apply space-y-3 mx-auto w-full;
+    @apply space-y-2 mx-auto w-full;
     max-width: 72rem;
     animation: fade-up 300ms var(--ease-premium);
   }
 
   .search-container {
-    @apply sticky top-24 z-30 py-3.5 rounded-[1.35rem] border mx-auto;
-    padding-left: 1.75rem;
-    padding-right: 1.15rem;
-    padding-top: 1.1rem;
-    padding-bottom: 1rem;
+    @apply sticky top-24 z-30 rounded-[1.35rem] border mx-auto;
+    padding: 0.9rem 1rem 0.85rem 1rem;
     width: 100%;
     background: rgba(255, 255, 255, 0.82);
     border-color: rgba(216, 225, 236, 0.95);
@@ -1549,7 +2216,7 @@
   }
 
   .search-hero {
-    @apply flex items-start justify-between gap-4 mb-3;
+    @apply flex items-start justify-between gap-3 mb-2;
     padding-left: 0.15rem;
   }
 
@@ -1564,21 +2231,21 @@
   }
 
   .search-hero h2 {
-    @apply m-0 mt-1 text-[1.12rem] font-semibold;
+    @apply m-0 text-[1.08rem] font-semibold;
     color: var(--text-strong);
     letter-spacing: -0.02em;
     line-height: 1.18;
   }
 
   .search-hero-subtext {
-    @apply m-0 mt-1 text-xs;
+    @apply m-0 text-xs;
     color: var(--text-soft);
     max-width: 42rem;
     line-height: 1.5;
   }
 
   .search-hero-pills {
-    @apply mt-2 flex flex-wrap gap-2;
+    @apply mt-1.5 flex flex-wrap gap-1.5;
   }
 
   .hero-pill {
@@ -1601,6 +2268,88 @@
   .search-guidance p {
     @apply m-0 text-xs;
     line-height: 1.45;
+  }
+
+  .workflow-rail {
+    @apply mt-2 rounded-2xl border;
+    background: linear-gradient(180deg, rgba(248, 251, 255, 0.92), rgba(239, 246, 255, 0.82));
+    border-color: #cbdcf2;
+    padding: 0.7rem;
+    animation: rail-reveal 360ms var(--ease-premium);
+    animation-delay: 80ms;
+    animation-fill-mode: both;
+  }
+
+  .workflow-rail-head h3 {
+    @apply m-0 text-sm font-semibold;
+    color: #0f172a;
+  }
+
+  .workflow-rail-head p {
+    @apply m-0 mt-0.5 text-xs;
+    color: #475569;
+  }
+
+  .workflow-grid {
+    @apply mt-1.5 grid gap-1.5;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workflow-card {
+    @apply rounded-xl border text-left;
+    padding: 0.6rem;
+    background: rgba(255, 255, 255, 0.92);
+    border-color: #d7e4f5;
+    transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+  }
+
+  .workflow-card:hover {
+    transform: translateY(-1px);
+    border-color: #93c5fd;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  }
+
+  .workflow-title {
+    @apply block text-xs font-semibold;
+    color: #0f172a;
+  }
+
+  .workflow-description {
+    @apply mt-0.5 block text-[11px];
+    color: #475569;
+    line-height: 1.35;
+  }
+
+  .workflow-action {
+    @apply mt-1.5 inline-flex text-[11px] font-semibold;
+    color: #1d4ed8;
+  }
+
+  .journey-rail {
+    @apply mt-2 flex flex-wrap items-center gap-1.5 rounded-xl border px-2.5 py-1.5;
+    background: rgba(255, 255, 255, 0.9);
+    border-color: #d8e1ec;
+    animation: rail-reveal 380ms var(--ease-premium);
+    animation-delay: 120ms;
+    animation-fill-mode: both;
+  }
+
+  .journey-step {
+    @apply inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold;
+    border-color: #d9e2ee;
+    color: #64748b;
+    background: #f8fafc;
+  }
+
+  .journey-step.is-active {
+    color: #1e3a8a;
+    border-color: #bfdbfe;
+    background: #eff6ff;
+  }
+
+  .journey-tip {
+    @apply ml-auto text-[11px];
+    color: #64748b;
   }
 
   .feature-panel {
@@ -1656,8 +2405,70 @@
     color: #1e3a8a;
   }
 
+  .onboarding-hint {
+    @apply mt-2 rounded-2xl border;
+    padding: 0.7rem;
+    background: linear-gradient(120deg, rgba(239, 246, 255, 0.96), rgba(240, 253, 250, 0.96));
+    border-color: rgba(147, 197, 253, 0.78);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+    animation: rail-reveal 420ms var(--ease-premium);
+    animation-delay: 150ms;
+    animation-fill-mode: both;
+  }
+
+  .onboarding-kicker {
+    @apply m-0 text-[11px] font-semibold uppercase tracking-[0.2em];
+    color: #0f766e;
+  }
+
+  .onboarding-copy h3 {
+    @apply m-0 text-sm font-semibold;
+    color: #0f172a;
+    line-height: 1.35;
+  }
+
+  .onboarding-copy p {
+    @apply m-0 mt-0.5 text-xs;
+    color: #475569;
+    line-height: 1.5;
+  }
+
+  .onboarding-why {
+    @apply mt-1.5;
+    color: #1e3a8a;
+    font-weight: 600;
+  }
+
+  .onboarding-actions {
+    @apply mt-2 flex flex-wrap gap-2;
+  }
+
+  .onboarding-primary,
+  .onboarding-alt,
+  .onboarding-dismiss {
+    @apply rounded-full border px-3 py-1.5 text-xs font-semibold;
+  }
+
+  .onboarding-primary {
+    background: #1d4ed8;
+    border-color: #1e40af;
+    color: #ffffff;
+  }
+
+  .onboarding-dismiss {
+    background: rgba(255, 255, 255, 0.88);
+    border-color: #c7dbf4;
+    color: #1e3a8a;
+  }
+
+  .onboarding-alt {
+    background: rgba(255, 255, 255, 0.92);
+    border-color: #bfdbfe;
+    color: #1e40af;
+  }
+
   .starter-inline {
-    @apply mt-3 flex flex-wrap gap-2;
+    @apply mt-2 flex flex-wrap gap-1.5;
   }
 
   .starter-inline-item {
@@ -1715,16 +2526,31 @@
   }
 
   .results-count {
-    @apply inline-flex items-center rounded-full border px-2.5 py-1.5 text-xs font-semibold;
-    background: #eef6ff;
-    border-color: #c7dbf4;
-    color: #1e3a8a;
+    @apply inline-flex items-center rounded-full border px-3.5 py-2 text-xs font-bold;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border-color: rgba(15, 78, 217, 0.25);
+    color: #0c4a6e;
     white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(15, 78, 217, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    animation: badge-pulse 400ms ease-out;
+  }
+
+  @keyframes badge-pulse {
+    0% {
+      transform: scale(0.92);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
 
   .results-grid {
     @apply grid gap-3;
-    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
   }
 
   .results-grid,
@@ -1732,32 +2558,52 @@
   .search-status,
   .search-error,
   .search-info,
+  .onboarding-hint,
   .starter-inline,
-  .search-guidance {
+  .search-guidance,
+  .workflow-rail,
+  .journey-rail {
     margin-left: auto;
     margin-right: auto;
     width: 100%;
   }
 
   .result-card {
-    @apply w-full flex flex-col gap-2 p-4 border rounded-2xl transition-all text-left;
-    min-height: 6.25rem;
-    background: rgba(255, 255, 255, 0.9);
-    border-color: rgba(216, 225, 236, 0.9);
+    @apply w-full flex flex-col gap-2 p-4 border rounded-2.5xl transition-all text-left cursor-pointer group;
+    min-height: 6.2rem;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(250, 252, 255, 0.92) 100%);
+    border-color: rgba(203, 213, 225, 0.6);
     box-shadow:
-      0 16px 36px rgba(15, 23, 42, 0.06),
-      inset 0 1px 0 rgba(255, 255, 255, 0.78);
+      0 1px 3px rgba(15, 23, 42, 0.04),
+      0 8px 24px rgba(15, 23, 42, 0.08),
+      inset 0 1px 1px rgba(255, 255, 255, 0.8);
     animation: card-rise 300ms var(--ease-premium);
-    animation-delay: calc(var(--stagger, 0) * 58ms);
+    animation-delay: calc(var(--stagger, 0) * 55ms);
     animation-fill-mode: both;
     contain: layout paint;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .result-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 0.04rem;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+    pointer-events: none;
   }
 
   .result-card:hover {
-    border-color: var(--border-strong);
-    background: linear-gradient(180deg, rgba(251, 253, 255, 0.98), rgba(242, 247, 255, 0.98));
-    transform: translateY(-2px) scale(1.002);
-    box-shadow: 0 18px 34px rgba(15, 23, 42, 0.1);
+    border-color: rgba(148, 163, 184, 0.5);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 251, 255, 0.96) 100%);
+    transform: translateY(-3px) scale(1.005);
+    box-shadow:
+      0 1px 3px rgba(15, 23, 42, 0.04),
+      0 20px 48px rgba(15, 23, 42, 0.12),
+      inset 0 1px 1px rgba(255, 255, 255, 0.9);
   }
 
   .result-card:focus-visible,
@@ -1768,20 +2614,58 @@
   }
 
   .result-type {
-    @apply inline-block px-2.5 py-1 text-xs font-semibold rounded flex-shrink-0;
-    background: #dbeafe;
-    color: #1e3a8a;
+    @apply inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-full flex-shrink-0;
+    background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%);
+    color: #0c4a6e;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    box-shadow: 0 2px 8px rgba(15, 78, 217, 0.1);
+  }
+
+  .result-card[data-type='stop'] .result-type {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    color: #065f46;
+  }
+
+  .result-card[data-type='route'] .result-type {
+    background: linear-gradient(135deg, #fed7aa 0%, #fecaca 100%);
+    color: #7c2d12;
+  }
+
+  .result-card[data-type='address'] .result-type {
+    background: linear-gradient(135deg, #e9d5ff 0%, #f3e8ff 100%);
+    color: #5b21b6;
+  }
+
+  .result-card[data-type='vehicle'] .result-type {
+    background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+    color: #831843;
+  }
+
+  .result-card[data-type='landmark'] .result-type {
+    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    color: #166534;
   }
 
   .result-topline {
     @apply flex items-center justify-between gap-2 w-full;
+    min-height: 1.8rem;
   }
 
   .result-action {
-    @apply text-[11px] font-semibold rounded-full px-2 py-1;
-    background: #eff6ff;
-    color: #1e3a8a;
+    @apply text-[10px] font-bold uppercase rounded-full px-2.5 py-1.2 flex-shrink-0 tracking-wide;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    color: #0369a1;
     white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(15, 78, 217, 0.08);
+    transition: all 200ms ease-out;
+  }
+
+  .result-card:hover .result-action {
+    background: linear-gradient(135deg, #0369a1 0%, #0c4a6e 100%);
+    color: white;
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(15, 78, 217, 0.2);
   }
 
   .result-content {
@@ -1790,33 +2674,35 @@
   }
 
   .result-name {
-    @apply font-semibold;
+    @apply font-bold;
     color: var(--text-strong);
-    letter-spacing: -0.006em;
-    line-height: 1.35;
+    letter-spacing: -0.008em;
+    line-height: 1.4;
+    font-size: 15px;
   }
 
   .result-detail {
-    @apply text-sm mt-1;
-    color: var(--text-soft);
-    line-height: 1.45;
+    @apply text-[13px] leading-1.5;
+    color: var(--text-body);
   }
 
   .result-arrow {
-    @apply flex-shrink-0;
-    color: #64748b;
-    transition: transform 160ms ease, color 160ms ease;
+    @apply flex-shrink-0 opacity-0 group-hover:opacity-100;
+    color: #0369a1;
+    font-weight: 800;
+    font-size: 1.2rem;
+    transition: all 240ms cubic-bezier(0.34, 1.56, 0.64, 1);
     align-self: flex-end;
   }
 
   .result-card:hover .result-arrow {
-    color: #1d4ed8;
-    transform: translateX(2px);
+    color: #0c4a6e;
+    transform: translateX(4px);
   }
 
   .boarding-panel {
-    @apply mt-4 rounded-2xl border;
-    padding: 1.05rem 1rem 1rem 1.35rem;
+    @apply mt-3 rounded-2xl border;
+    padding: 0.9rem 0.9rem 0.9rem 1.2rem;
     background: linear-gradient(145deg, rgba(251, 253, 255, 0.96) 0%, rgba(243, 248, 255, 0.96) 100%);
     border-color: rgba(205, 223, 246, 0.95);
     box-shadow:
@@ -2092,77 +2978,234 @@
   }
 
   .app-footer {
-    @apply border-t mt-8;
+    @apply border-t mt-10;
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(248, 251, 255, 0.92)),
-      radial-gradient(circle at 8% 0%, rgba(29, 78, 216, 0.08), transparent 30%);
-    border-color: rgba(216, 225, 236, 0.9);
-    backdrop-filter: blur(14px);
-    box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.05);
+      linear-gradient(180deg, rgba(247, 249, 252, 0.95), rgba(240, 245, 250, 0.98)),
+      radial-gradient(circle at 50% 0%, rgba(29, 78, 216, 0.04), transparent 50%);
+    border-color: rgba(216, 225, 236, 0.6);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 -12px 32px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    animation: footer-rise 580ms var(--ease-premium);
+    animation-delay: 120ms;
+    animation-fill-mode: both;
+  }
+
+  .mobile-thumb-nav {
+    display: none;
+  }
+
+  .thumb-tab {
+    @apply inline-flex items-center justify-center gap-1 rounded-full border px-3 py-2 text-xs font-semibold;
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(203, 213, 225, 0.95);
+    color: #334155;
+    min-height: 2.25rem;
+  }
+
+  .thumb-icon {
+    width: 0.9rem;
+    height: 0.9rem;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+  }
+
+  .thumb-tab.active {
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 52%, #1e40af 100%);
+    border-color: #1e40af;
+    color: #ffffff;
+    box-shadow: 0 10px 20px rgba(29, 78, 216, 0.2);
+  }
+
+  .thumb-badge {
+    @apply inline-flex items-center justify-center rounded-full text-[10px] font-semibold;
+    min-width: 1.05rem;
+    height: 1.05rem;
+    padding: 0 0.25rem;
+    background: #dc2626;
+    color: #ffffff;
   }
 
   .footer-content {
-    @apply max-w-2xl mx-auto px-4 py-4 text-xs;
+    @apply max-w-6xl mx-auto text-xs;
     width: min(100%, 72rem);
-    padding-left: 1.15rem;
-    padding-right: 1.15rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    padding-top: 1.8rem;
+    padding-bottom: 1.8rem;
     text-align: left;
     color: var(--text-soft);
     line-height: 1.55;
     display: grid;
+    gap: 1rem;
+  }
+
+  .footer-top {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .footer-brand {
+    display: grid;
+    gap: 0.4rem;
+    border-bottom: 1px solid rgba(203, 213, 225, 0.4);
+    padding-bottom: 1rem;
+    margin-bottom: 0;
+  }
+
+  .footer-title {
+    margin: 0;
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.01em;
+  }
+
+  .footer-summary,
+  .footer-live {
+    margin: 0.4rem 0 0;
+    font-size: 11px;
+    color: var(--text-body);
+    line-height: 1.5;
+  }
+
+  .footer-live {
+    font-weight: 600;
+    color: var(--text-soft);
+    font-size: 10px;
+  }
+
+  .footer-group {
+    padding: 0;
+    border-radius: 0;
+    border: none;
+    background: transparent;
+    transition: none;
+    animation: none;
+  }
+
+  .footer-group:nth-of-type(1) {
+    animation-delay: 0;
+  }
+
+  .footer-group:nth-of-type(2) {
+    animation-delay: 0;
+  }
+
+  .footer-group:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .footer-group-title {
+    margin: 0 0 0.6rem 0;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-strong);
+  }
+
+  .footer-link-grid {
+    margin-top: 0.4rem;
+    display: grid;
     gap: 0.35rem;
+  }
+
+  .footer-link-grid a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.9rem;
+    text-decoration: none;
+    color: #1d4ed8;
+    font-weight: 700;
+    border-radius: 0.55rem;
+    padding: 0.22rem 0.45rem;
+    gap: 0.38rem;
+  }
+
+  .footer-link-icon {
+    width: 0.9rem;
+    height: 0.9rem;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+    transition: transform 200ms ease-out;
+  }
+
+  .footer-link-grid a:hover .footer-link-icon {
+    transform: scale(1.15);
+  }
+
+  .footer-link-grid a:hover {
+    background: #eff6ff;
+    color: #1e40af;
   }
 
   .footer-ownership {
-    margin: 0.1rem 0 0;
-    font-size: 0.68rem;
-    color: #7c8ca3;
-    letter-spacing: 0.01em;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    width: fit-content;
-    padding: 0.28rem 0.55rem;
-    border: 1px solid rgba(203, 213, 225, 0.8);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.78);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    margin: 0;
+    font-size: 9px;
+    color: var(--text-soft);
+    letter-spacing: 0;
+    display: block;
+    padding: 1rem 0 0 0;
+    border-top: 1px solid rgba(203, 213, 225, 0.4);
+    width: 100%;
+    background: transparent;
+    box-shadow: none;
   }
 
   .footer-ownership a {
-    color: inherit;
+    color: #1e40af;
     text-decoration: none;
     font-weight: 500;
+    border-bottom: 1px solid #1e40af;
+    transition: color 200ms ease-out;
   }
 
   .footer-ownership a:hover {
-    color: var(--brand-strong);
-    text-decoration: none;
+    color: #1d4ed8;
+    border-bottom-color: #1d4ed8;
   }
 
   .footer-credits {
-    margin: 0.05rem 0 0;
-    font-size: 0.68rem;
-    color: #8b97a8;
+    margin: 0.6rem 0 0 0;
+    font-size: 9px;
+    color: var(--text-soft);
     line-height: 1.5;
     max-width: 70ch;
   }
 
   .footer-credits a {
-    color: inherit;
+    color: #1e40af;
     text-decoration: none;
-    font-weight: 600;
+    font-weight: 500;
+    border-bottom: 1px solid transparent;
+    transition: all 200ms ease-out;
   }
 
   .footer-credits a:hover {
-    color: var(--brand-strong);
-    text-decoration: underline;
-    text-underline-offset: 0.14em;
+    color: #1d4ed8;
+    border-bottom-color: #1d4ed8;
   }
 
   @media (max-width: 1024px) {
     .orb-three {
       display: none;
+    }
+
+    .ambient-layers {
+      transform: none;
+      transition: none;
+      will-change: auto;
     }
   }
 
@@ -2272,6 +3315,7 @@
   }
 
   @media (pointer: coarse) {
+    .workflow-card:hover,
     .starter-inline-item:hover,
     .result-card:hover {
       transform: none;
@@ -2324,6 +3368,15 @@
       grid-area: brand;
     }
 
+    .brand-lockup {
+      padding-left: 0;
+    }
+
+    .brand-tagline {
+      font-size: 0.58rem;
+      letter-spacing: 0.12em;
+    }
+
     .main-nav {
       grid-area: nav;
       width: 100%;
@@ -2340,14 +3393,39 @@
       padding: 0.7rem 0.3rem;
       font-size: 0.72rem;
       letter-spacing: 0.01em;
+      gap: 0.2rem;
+      flex-direction: column;
+    }
+
+    .nav-icon {
+      margin-right: 0;
+      width: 0.84rem;
+      height: 0.84rem;
+    }
+
+    .nav-label {
+      font-size: 0.68rem;
     }
 
     .header-actions {
       grid-area: actions;
+      gap: 0.35rem;
+      justify-self: end;
+    }
+
+    .live-pill {
+      min-height: 2.3rem;
+      padding-left: 0.55rem;
+      padding-right: 0.55rem;
+      font-size: 0.68rem;
     }
 
     .share-link {
       display: inline-flex;
+      min-height: 2.3rem;
+      padding-left: 0.62rem;
+      padding-right: 0.62rem;
+      font-size: 0.68rem;
     }
 
     .header-layout {
@@ -2365,8 +3443,8 @@
 
     .main-content {
       @apply px-3;
-      padding-top: 1.05rem;
-      padding-bottom: 1.45rem;
+      padding-top: 0.85rem;
+      padding-bottom: 6rem;
     }
 
     .search-container {
@@ -2409,8 +3487,40 @@
       display: none;
     }
 
+    .onboarding-hint {
+      margin-top: 0.45rem;
+      padding: 0.55rem;
+    }
+
+    .onboarding-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.35rem;
+    }
+
+    .onboarding-primary,
+    .onboarding-alt,
+    .onboarding-dismiss {
+      min-height: 2.35rem;
+      width: 100%;
+    }
+
+    .workflow-grid {
+      grid-template-columns: 1fr;
+      gap: 0.45rem;
+    }
+
+    .workflow-card {
+      min-height: 4.15rem;
+    }
+
+    .journey-tip {
+      width: 100%;
+      margin-left: 0;
+    }
+
     .search-view {
-      @apply space-y-2.5;
+      @apply space-y-1.5;
     }
 
     .feature-panel {
@@ -2419,10 +3529,10 @@
     }
 
     .starter-inline {
-      margin-top: 0.55rem;
+      margin-top: 0.45rem;
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 0.35rem;
+      gap: 0.3rem;
       opacity: 0.84;
     }
 
@@ -2446,9 +3556,9 @@
     }
 
     .result-card {
-      padding: 0.78rem;
+      padding: 0.65rem;
       align-items: flex-start;
-      gap: 0.6rem;
+      gap: 0.5rem;
     }
 
     .boarding-grid {
@@ -2501,20 +3611,31 @@
     }
 
     .app-footer {
-      margin-top: 1.75rem;
+      margin-top: 1.3rem;
       padding-left: 0.35rem;
       padding-right: 0.35rem;
     }
 
     .footer-content {
-      padding-left: 0.9rem;
-      padding-right: 0.9rem;
-      gap: 0.42rem;
+      padding-left: 0.8rem;
+      padding-right: 0.8rem;
+      gap: 0.4rem;
+      padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+      border-radius: 1rem 1rem 0 0;
+    }
+
+    .footer-top {
+      grid-template-columns: 1fr;
+      gap: 0.4rem;
+    }
+
+    .footer-group {
+      padding: 0.4rem 0.4rem;
     }
 
     .footer-ownership {
       font-size: 0.68rem;
-      padding: 0.28rem 0.55rem;
+      padding: 0.2rem 0.45rem;
     }
 
     .footer-credits {
@@ -2522,8 +3643,25 @@
     }
 
     .footer-links {
-      gap: 0.9rem;
-      margin-top: 0.15rem;
+      gap: 0.7rem;
+      margin-top: 0.1rem;
+    }
+
+    .mobile-thumb-nav {
+      position: fixed;
+      left: 0.75rem;
+      right: 0.75rem;
+      bottom: max(0.55rem, env(safe-area-inset-bottom));
+      z-index: 70;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.4rem;
+      padding: 0.4rem;
+      border-radius: 1rem;
+      border: 1px solid rgba(203, 213, 225, 0.9);
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 18px 36px rgba(15, 23, 42, 0.16);
     }
 
     .orb-three {
@@ -2543,6 +3681,19 @@
 
     .boarding-actions {
       grid-template-columns: 1fr;
+    }
+
+    .onboarding-actions {
+      grid-template-columns: 1fr;
+    }
+
+    .workflow-rail {
+      padding: 0.65rem;
+    }
+
+    .journey-rail {
+      padding-left: 0.6rem;
+      padding-right: 0.6rem;
     }
   }
 
@@ -2593,13 +3744,26 @@
   /* Accessibility */
   @media (prefers-reduced-motion: reduce) {
     .ambient-orb,
+    .app-header,
+    .app-header::after,
+    .workflow-rail,
+    .journey-rail,
+    .onboarding-hint,
+    .app-footer,
+    .footer-group,
     .starter-inline-item,
     .result-card,
     .search-view,
     .search-container,
+    .ambient-layers,
     .search-status::after {
       transition: none;
       animation: none;
+    }
+
+    .ambient-layers {
+      transform: none;
+      will-change: auto;
     }
   }
 
@@ -2660,6 +3824,119 @@
     }
     50% {
       transform: translate3d(10px, -12px, 0) scale(1.04);
+    }
+  }
+
+  @keyframes header-settle {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes header-sheen {
+    from {
+      opacity: 0;
+      transform: scaleX(0.2);
+    }
+    to {
+      opacity: 1;
+      transform: scaleX(1);
+    }
+  }
+
+  @keyframes rail-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes footer-rise {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes footer-card-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.995);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes live-pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.2);
+      opacity: 0.8;
+    }
+  }
+
+  @keyframes live-radar-sweep {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes live-shimmer {
+    0% {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+  }
+
+  @keyframes share-shine {
+    0% {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+  }
+
+  @keyframes live-ping {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgba(15, 118, 110, 0.28);
+    }
+    55% {
+      box-shadow: 0 0 0 7px rgba(15, 118, 110, 0);
     }
   }
 </style>

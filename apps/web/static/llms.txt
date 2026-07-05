@@ -1,21 +1,24 @@
 # MBTA Tracker
 
-MBTA Tracker is a search-first Boston transit web app focused on fast discovery, live arrivals, route and stop detail, vehicle tracking, commute intelligence, and trip planning.
+MBTA Tracker is a search-first Boston transit web app optimized for quick, low-friction decisions with live data.
 
-## Primary Experience
-- Search routes, stops, addresses, and vehicles from the home page
-- View live arrivals and nearby stop recommendations
-- Inspect route-level stop sequences and crowding guidance
-- Track a vehicle with next-stop detail
-- Read alerts and realtime status updates
+## Purpose
+- Help riders find routes, stops, addresses, and vehicles fast
+- Prioritize compact text-first answers before map-heavy workflows
+- Reduce cognitive load during real-time transit decisions
 
-## Public Entry Points
-- `/` search-first transit home
-- `/share` public share and FAQ landing page
-- `/embed` embeddable widget view
-- `/health` basic health endpoint
+## Canonical Public Pages
+- `/` Home and primary search workflow
+- `/share` Public explainer and FAQ landing page
+- `/about` Product philosophy and design principles
+- `/privacy` Privacy and telemetry summary
 
-## APIs
+## Machine-Readable Discovery
+- `/sitemap.xml` Search engine sitemap
+- `/robots.txt` Crawl directives
+- `/ai.txt` AI-facing profile and crawl guidance
+
+## APIs (non-index landing content, runtime data)
 - `/api/search`
 - `/api/route/*`
 - `/api/stop/*`
@@ -23,10 +26,13 @@ MBTA Tracker is a search-first Boston transit web app focused on fast discovery,
 - `/api/alerts`
 - `/api/telemetry`
 
-## Credits
-- MBTA data
+## Data Sources and Attribution
+- MBTA data APIs
 - MapLibre
 - OpenStreetMap
 - Nominatim
 - CARTO
-- Aarti S Ravikumar, Pioneer Charter School of Science II
+
+## Publisher
+- Aarti S Ravikumar
+- https://ai-aarti.com

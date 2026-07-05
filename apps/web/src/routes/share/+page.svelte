@@ -43,16 +43,51 @@
 
   const pageSchema = {
     '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: faqs.map((item) => ({
-      '@type': 'Question',
-      name: item.q,
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: item.a
+    '@graph': [
+      {
+        '@type': 'WebPage',
+        '@id': `${data.canonicalUrl}#webpage`,
+        name: 'MBTA Tracker Share Page',
+        url: data.canonicalUrl,
+        inLanguage: 'en-US',
+        description:
+          'MBTA Tracker is a compact search-first transit experience for Boston with live arrivals, nearby stops, route discovery, and an embeddable widget.'
+      },
+      {
+        '@type': 'FAQPage',
+        '@id': `${data.canonicalUrl}#faq`,
+        isPartOf: {
+          '@id': `${data.canonicalUrl}#webpage`
+        },
+        mainEntity: faqs.map((item) => ({
+          '@type': 'Question',
+          name: item.q,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: item.a
+          }
+        }))
       }
-    }))
+    ]
   };
+
+  const workflow = [
+    {
+      step: '1',
+      title: 'Search with intent',
+      body: 'Start with a route, stop, address, or vehicle so users do not need to interpret a dense map first.'
+    },
+    {
+      step: '2',
+      title: 'Pick one clear action',
+      body: 'Each result drives a next action: view arrivals, track a vehicle, or focus map context.'
+    },
+    {
+      step: '3',
+      title: 'Commit quickly',
+      body: 'Users move from discovery to boarding choice in a compact, low-overhead flow.'
+    }
+  ];
 
   async function copyLink() {
     if (!navigator?.clipboard) {
@@ -82,6 +117,7 @@
     name="description"
     content="MBTA Tracker is a compact search-first transit experience for Boston with live arrivals, nearby stops, route discovery, and an embeddable widget."
   />
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
   <link rel="canonical" href={data.canonicalUrl} />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="MBTA Tracker" />
@@ -92,6 +128,8 @@
   />
   <meta property="og:url" content={data.canonicalUrl} />
   <meta property="og:image" content={data.shareImageUrl} />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="MBTA Tracker social preview" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="MBTA Tracker | Search-first Boston transit" />
@@ -100,6 +138,7 @@
     content="Live arrivals, nearby stop discovery, route detail, and compact transit insights for Boston."
   />
   <meta name="twitter:image" content={data.shareImageUrl} />
+  <meta name="twitter:image:alt" content="MBTA Tracker social preview" />
   <script type="application/ld+json">{JSON.stringify(pageSchema)}</script>
 </svelte:head>
 
@@ -115,6 +154,7 @@
 
       <div class="actions">
         <a class="primary" href="/">Open the app</a>
+        <a class="secondary" href="/embed">Open embed preview</a>
         <button type="button" class="secondary" on:click={sharePage}>Share page</button>
         <button type="button" class="ghost" on:click={copyLink}>Copy link</button>
       </div>
@@ -143,6 +183,19 @@
         </article>
       {/each}
     </div>
+
+    <section class="workflow" aria-label="Core user workflow">
+      <div class="section-label">Core Workflow</div>
+      <div class="workflow-grid">
+        {#each workflow as item}
+          <article class="workflow-card">
+            <p class="workflow-step">Step {item.step}</p>
+            <h2>{item.title}</h2>
+            <p>{item.body}</p>
+          </article>
+        {/each}
+      </div>
+    </section>
 
     <div class="faq-wrap">
       <div class="section-label">FAQ</div>
@@ -173,7 +226,7 @@
     max-width: 1120px;
     margin: 0 auto;
     display: grid;
-    gap: 1.2rem;
+    gap: 1rem;
   }
 
   .hero,
@@ -187,7 +240,7 @@
   }
 
   .hero {
-    padding: clamp(1.25rem, 3vw, 2.25rem);
+    padding: clamp(1.1rem, 2.5vw, 2rem);
   }
 
   .eyebrow,
@@ -203,7 +256,7 @@
   }
 
   h1 {
-    margin: 0.7rem 0 0;
+    margin: 0.5rem 0 0;
     max-width: 14ch;
     font-size: clamp(2rem, 5vw, 4.6rem);
     line-height: 0.96;
@@ -213,7 +266,7 @@
 
   .lede {
     max-width: 64ch;
-    margin: 1rem 0 0;
+    margin: 0.8rem 0 0;
     font-size: clamp(1rem, 2vw, 1.2rem);
     line-height: 1.65;
     color: #334155;
@@ -222,8 +275,8 @@
   .actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-top: 1.3rem;
+    gap: 0.6rem;
+    margin-top: 1rem;
   }
 
   .actions :global(button),
@@ -300,6 +353,50 @@
     padding: 1rem;
   }
 
+  .workflow {
+    padding: clamp(1rem, 2.8vw, 1.75rem);
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 28px;
+    background: rgba(255, 255, 255, 0.74);
+    backdrop-filter: blur(18px);
+    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.08);
+  }
+
+  .workflow-grid {
+    margin-top: 1rem;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.9rem;
+  }
+
+  .workflow-card {
+    padding: 1rem;
+    border-radius: 20px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    background: rgba(255, 255, 255, 0.84);
+  }
+
+  .workflow-step {
+    margin: 0;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #0f766e;
+    font-weight: 800;
+  }
+
+  .workflow-card h2 {
+    margin: 0.4rem 0 0;
+    font-size: 1rem;
+    color: #0f172a;
+  }
+
+  .workflow-card p {
+    margin: 0.55rem 0 0;
+    color: #475569;
+    line-height: 1.55;
+  }
+
   .card {
     padding: 1rem;
     border-radius: 22px;
@@ -358,6 +455,7 @@
   @media (max-width: 900px) {
     .stats,
     .cards,
+    .workflow-grid,
     .faq-grid {
       grid-template-columns: 1fr;
     }

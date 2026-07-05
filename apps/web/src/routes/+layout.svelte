@@ -1,12 +1,34 @@
 <script lang="ts">
   import { page } from '$app/stores';
   const clarityProjectId = import.meta.env.PUBLIC_CLARITY_PROJECT_ID as string | undefined;
+  const siteUrlFromEnv = import.meta.env.PUBLIC_SITE_URL as string | undefined;
+
+  $: siteOrigin = (siteUrlFromEnv ? siteUrlFromEnv.replace(/\/$/, '') : $page.url.origin);
+  $: organizationSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    '@id': `${siteOrigin}/#organization`,
+    name: 'MBTA Tracker',
+    url: siteOrigin,
+    logo: `${siteOrigin}/mbta-social-preview.svg`,
+    sameAs: ['https://ai-aarti.com', 'https://github.com/aartisr']
+  };
 
   $: isEmbed = $page.url.pathname.startsWith('/embed');
 </script>
 
 <svelte:head>
   <meta name="color-scheme" content="light" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+  <meta name="application-name" content="MBTA Tracker" />
+  <meta name="apple-mobile-web-app-title" content="MBTA Tracker" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta property="og:locale" content="en_US" />
+  <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+  <link rel="alternate" type="text/plain" title="LLMs" href="/llms.txt" />
+  <link rel="alternate" type="text/plain" title="AI Profile" href="/ai.txt" />
+  <script type="application/ld+json">{JSON.stringify(organizationSchema)}</script>
   {#if clarityProjectId}
     <script type="text/javascript">
       {`

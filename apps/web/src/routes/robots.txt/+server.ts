@@ -1,7 +1,8 @@
 import type { RequestHandler } from './$types';
+import { getSiteOrigin } from '$lib/seo/site-origin';
 
 export const GET: RequestHandler = ({ url }) => {
-  const origin = url.origin;
+  const origin = getSiteOrigin(url);
   const body = [
     'User-agent: *',
     'Allow: /',
@@ -9,6 +10,7 @@ export const GET: RequestHandler = ({ url }) => {
     'Disallow: /embed',
     'Disallow: /health',
     `Sitemap: ${origin}/sitemap.xml`,
+    `Host: ${origin.replace(/^https?:\/\//, '')}`,
     ''
   ].join('\n');
 
