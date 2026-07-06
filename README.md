@@ -1,8 +1,78 @@
 # MBTA Tracker
 
-Realtime MBTA vehicle tracker with a configurable embeddable widget.
+MBTA Tracker is a realtime MBTA transit intelligence system with a configurable embeddable widget.
 
-This project is a practical, user-first transit tool and a personal thank-you to MBTA for the role it has played in Boston life.
+This repository is both:
+
+- A production-minded transit product for fast decisions under real-world pressure.
+- A public, research-informed engineering artifact by Aarti S Ravikumar, built with gratitude for MBTA and for the people who rely on it every day.
+
+## The Story (And Why It Matters)
+
+Most transit tools are technically rich but cognitively expensive. They often ask riders to parse dense maps, decode route complexity, and mentally merge alerts, arrivals, and stop context while they are already under time pressure.
+
+MBTA Tracker starts from a different premise:
+
+- The product should reduce cognitive load, not shift it to the rider.
+- Speed is not only network latency; speed is time-to-confident-decision.
+- Trust is a feature: stale data, uncertainty, and connectivity state must be explicit.
+
+This is why the interface is search-first, compact, and progressive, with map context available on demand rather than forced by default.
+
+## Research Grounding
+
+This project is intentionally rooted in practical product research and transparent engineering constraints.
+
+Research inputs used in design and implementation:
+
+- Real rider workflows: route-first, stop-first, and address-first entry patterns.
+- Cognitive ergonomics principles: progressive disclosure, reduced option overload, and clear next actions.
+- Reliability behavior: explicit realtime state, reconnect signaling, and degradation-aware UX.
+- Runtime comparatives: local Node/WebSocket backend vs edge Worker/Durable Object fanout model.
+
+Evidence and artifacts in this repo:
+
+- Modular architecture rationale: [ARCHITECTURE.md](ARCHITECTURE.md)
+- Implementation status and iteration notes: [doc/STATUS.md](doc/STATUS.md)
+- Start-here implementation playbook: [doc/IMPLEMENTATION_START_HERE.md](doc/IMPLEMENTATION_START_HERE.md)
+- Deployment and operating docs: [doc/DEPLOYMENT_ZERO_BUDGET.md](doc/DEPLOYMENT_ZERO_BUDGET.md)
+
+## Honesty And Limits
+
+This repository is explicit about what it can and cannot guarantee.
+
+What it does:
+
+- Surfaces realtime transit information quickly with compact, actionable UI.
+- Exposes data freshness and connection context instead of hiding uncertainty.
+- Provides local and edge runtime options with shared core logic.
+
+What it does not claim:
+
+- It is not a perfect prediction engine for all service conditions.
+- It cannot eliminate upstream feed delays or service anomalies.
+- It is not a replacement for official agency incident communication.
+
+Honesty principle: ambiguity is surfaced, not suppressed.
+
+## Value Added (Concrete)
+
+Rider value:
+
+- Faster path from query to boarding decision.
+- Less visual clutter, stronger signal hierarchy.
+- Better accessibility and readability controls.
+
+Engineering value:
+
+- Plug-and-play architecture through adapters, repositories, and DI container patterns.
+- Shared transit-core logic across runtimes.
+- Test-covered, refactor-friendly modules.
+
+Ecosystem value:
+
+- Embeddable widget for schools, community pages, and local organizations.
+- Crawlable share/metadata surfaces for discovery.
 
 ## Why people use it
 
@@ -50,9 +120,9 @@ Core patterns in use:
 - Dependency injection through a central `ServiceContainer`.
 - Composable stop enrichment via pluggable enrichers.
 
-See [ARCHITECTURE.md](/Users/rraviku2/aarti/mbta-tracker/ARCHITECTURE.md) for the detailed module breakdown and design rationale.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the detailed module breakdown and design rationale.
 
-Current implementation notes and the compact project status live in [`doc/STATUS.md`](/Users/rraviku2/aarti/mbta-tracker/doc/STATUS.md), with the start-here guide in [`doc/IMPLEMENTATION_START_HERE.md`](/Users/rraviku2/aarti/mbta-tracker/doc/IMPLEMENTATION_START_HERE.md).
+Current implementation notes and the compact project status live in [doc/STATUS.md](doc/STATUS.md), with the start-here guide in [doc/IMPLEMENTATION_START_HERE.md](doc/IMPLEMENTATION_START_HERE.md).
 
 ## Repo Layout
 
@@ -411,4 +481,4 @@ When adding or changing tracker behavior:
 - Add or update Vitest coverage for new service behavior and extracted components.
 - Run `npm --workspace apps/web test` and `npm --workspace apps/web run check` before finalizing changes.
 
-For larger architectural work, review [ARCHITECTURE.md](/Users/rraviku2/aarti/mbta-tracker/ARCHITECTURE.md) first so new code follows the established patterns.
+For larger architectural work, review [ARCHITECTURE.md](ARCHITECTURE.md) first so new code follows the established patterns.

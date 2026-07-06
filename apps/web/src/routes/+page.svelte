@@ -1,15 +1,28 @@
 <script lang="ts">
+  import '$lib/home/styles/home-page.css';
   import { onMount, tick } from 'svelte';
   import { browser } from '$app/environment';
   import { DEFAULT_TRACKER_CONFIG } from '$lib/tracker';
-  import SearchBox from '$lib/SearchBox.svelte';
+  import { distanceKm, estimateWalkMinutes } from '$lib/home/geo';
+  import {
+    applyOnboardingSignal,
+    DEFAULT_ONBOARDING_PROFILE,
+    getPreferredOnboardingVariant,
+    normalizeOnboardingProfile,
+    type OnboardingProfile
+  } from '$lib/home/onboarding-personalization';
+  import HomeMapBoardingPanels from '$lib/home/components/HomeMapBoardingPanels.svelte';
+  import HomeResultsSection from '$lib/home/components/HomeResultsSection.svelte';
+  import HomeSearchFlow from '$lib/home/components/HomeSearchFlow.svelte';
+  import HomeFooter from '$lib/home/components/HomeFooter.svelte';
+  import HomeMobileThumbNav from '$lib/home/components/HomeMobileThumbNav.svelte';
+  import { inferSearchIntent } from '$lib/home/search-intents';
   import { apiFetch } from '$lib/api';
   import Phase3Hub from '$lib/Phase3Hub.svelte';
   import Phase4Hub from '$lib/Phase4Hub.svelte';
   import AlertCenter from '$lib/AlertCenter.svelte';
   import RouteView from '$lib/RouteView.svelte';
   import StopView from '$lib/StopView.svelte';
-  import TrackerWidget from '$lib/tracker/TrackerWidget.svelte';
   import VehicleView from '$lib/VehicleView.svelte';
   import type {
     AddressResult,
@@ -63,6 +76,8 @@
   let boardingLegendEl: HTMLDivElement | null = null;
   let isBoardingLegendCollapsed = false;
   let parallaxOffset = 0;
+  let TrackerWidgetComponent: typeof import('$lib/tracker/TrackerWidget.svelte').default | null = null;
+  let trackerWidgetLoadPromise: Promise<void> | null = null;
   let showOnboardingHint = false;
   let onboardingVariant: 'address' | 'route' = 'address';
   let onboardingPrimaryIntent: 'address' | 'route' = 'address';
@@ -70,11 +85,7 @@
   let onboardingHeadline = 'Start with your address, then pick the best nearby boarding stop.';
   let onboardingTip = 'Great for first-time riders and unfamiliar neighborhoods.';
   let onboardingWhy = 'Why this suggestion: address-first is easiest for most first-time riders.';
-  let onboardingProfile = {
-    addressCount: 0,
-    routeCount: 0,
-    mapCount: 0
-  };
+  let onboardingProfile: OnboardingProfile = DEFAULT_ONBOARDING_PROFILE;
 
   const quickQueries = ['South Station now', 'Alewife', 'Red Line', '66', 'Harvard'];
   const searchPrinciples = ['Fast boarding', 'Live arrivals', 'Map on demand'];
@@ -187,11 +198,7 @@
   }
 
   function resetPersonalization() {
-    onboardingProfile = {
-      addressCount: 0,
-      routeCount: 0,
-      mapCount: 0
-    };
+    onboardingProfile = DEFAULT_ONBOARDING_PROFILE;
     onboardingVariant = 'address';
     showOnboardingHint = true;
 
@@ -208,44 +215,6 @@
     void track('personalization_reset', { source: 'settings' });
     routeInfoMessage = 'Personalization reset. Guidance has been restored.';
     closeSettingsMenu();
-  }
-
-  function looksLikeRouteQuery(value: string): boolean {
-    const query = value.trim().toLowerCase();
-    if (!query) {
-      return false;
-    }
-
-    return /^\d{1,3}[a-z]?$/.test(query)
-      || /\b(route|line)\b/.test(query)
-      || /\b(red|green|orange|blue|silver|mattapan)\b/.test(query);
-  }
-
-  function inferSearchIntent(value: string): 'address' | 'route' | null {
-    if (looksLikeAddressQuery(value)) {
-      return 'address';
-    }
-
-    if (looksLikeRouteQuery(value)) {
-      return 'route';
-    }
-
-    return null;
-  }
-
-  function getPreferredOnboardingVariant(profile: typeof onboardingProfile, fallback: 'address' | 'route'): 'address' | 'route' {
-    const routeWeight = profile.routeCount + Math.round(profile.mapCount * 0.7);
-    const addressWeight = profile.addressCount;
-
-    if (routeWeight - addressWeight >= 1) {
-      return 'route';
-    }
-
-    if (addressWeight - routeWeight >= 1) {
-      return 'address';
-    }
-
-    return fallback;
   }
 
   function loadOnboardingProfile() {
@@ -265,11 +234,7 @@
         mapCount?: number;
       };
 
-      onboardingProfile = {
-        addressCount: Math.max(0, Number(parsed.addressCount) || 0),
-        routeCount: Math.max(0, Number(parsed.routeCount) || 0),
-        mapCount: Math.max(0, Number(parsed.mapCount) || 0)
-      };
+      onboardingProfile = normalizeOnboardingProfile(parsed);
     } catch {
       // Ignore malformed onboarding profile payloads.
     }
@@ -288,13 +253,7 @@
   }
 
   function recordOnboardingSignal(signal: 'address' | 'route' | 'map', source: string) {
-    if (signal === 'address') {
-      onboardingProfile.addressCount += 1;
-    } else if (signal === 'route') {
-      onboardingProfile.routeCount += 1;
-    } else {
-      onboardingProfile.mapCount += 1;
-    }
+    onboardingProfile = applyOnboardingSignal(onboardingProfile, signal);
 
     saveOnboardingProfile();
 
@@ -356,81 +315,6 @@
     }
 
     void track('onboarding_hint_dismissed', { source });
-  }
-
-  function looksLikeAddressQuery(value: string): boolean {
-    const query = value.trim().toLowerCase();
-    if (!query) {
-      return false;
-    }
-
-    return /^\d+\s+/.test(query)
-      || /\b(st|street|ave|avenue|rd|road|blvd|boulevard|dr|drive|ln|lane|ct|court|pkwy|parkway)\b/.test(query)
-      || /\b(ma|massachusetts|boston|cambridge|somerville|malden|medford|quincy|brookline)\b/.test(query);
-  }
-
-  function getResultKindLabel(result: SearchResult): string {
-    switch (result.type) {
-      case 'route':
-        return `Route ${result.route_number}`;
-      case 'stop':
-        return 'Stop';
-      case 'address':
-        return 'Address';
-      case 'vehicle':
-        return 'Vehicle';
-      case 'landmark':
-        return 'Landmark';
-    }
-  }
-
-  function getResultTitle(result: SearchResult): string {
-    switch (result.type) {
-      case 'route':
-        return `Route ${result.route_number}`;
-      case 'stop':
-        return result.stop_name;
-      case 'address':
-        return result.address;
-      case 'vehicle':
-        return `Vehicle ${result.vehicle_id}`;
-      case 'landmark':
-        return result.landmark_name;
-    }
-  }
-
-  function getResultActionLabel(result: SearchResult): string {
-    switch (result.type) {
-      case 'route':
-        return 'View route';
-      case 'stop':
-        return 'View arrivals';
-      case 'address':
-        return 'Best nearby stop';
-      case 'vehicle':
-        return 'Track vehicle';
-      case 'landmark':
-        return 'Nearby stops';
-    }
-  }
-
-  function getResultDetail(result: SearchResult): string {
-    switch (result.type) {
-      case 'stop':
-        return result.stop_code ? `Stop code ${result.stop_code}` : 'Live arrivals and stop detail';
-      case 'route':
-        return result.description || result.direction_names.join(' • ') || 'Route detail and live arrivals';
-      case 'address':
-        return result.nearby_stops.length > 0
-          ? `Nearest stop: ${result.nearby_stops[0].stop_name} (${result.distance_km.toFixed(1)} km)`
-          : 'Address found. Tap to view the closest transit option.';
-      case 'vehicle':
-        return `Route ${result.route_number} • ${result.headsign}`;
-      case 'landmark':
-        return result.nearby_stops.length > 0
-          ? `${result.nearby_stops.length} nearby stops, including ${result.nearby_stops[0].stop_name}`
-          : 'Landmark found. Nearby stops were not detected yet.';
-    }
   }
 
   function getOrCreateSessionId(): string {
@@ -608,6 +492,24 @@
     };
   });
 
+  async function ensureTrackerWidgetLoaded(): Promise<void> {
+    if (!browser || TrackerWidgetComponent) {
+      return;
+    }
+
+    if (!trackerWidgetLoadPromise) {
+      trackerWidgetLoadPromise = import('$lib/tracker/TrackerWidget.svelte')
+        .then((module) => {
+          TrackerWidgetComponent = module.default;
+        })
+        .finally(() => {
+          trackerWidgetLoadPromise = null;
+        });
+    }
+
+    await trackerWidgetLoadPromise;
+  }
+
   async function handleSearch(
     query: string,
     options: { skipIntentInference?: boolean } = {}
@@ -725,6 +627,9 @@
     }
 
     homeMode = mode;
+    if (mode === 'map') {
+      void ensureTrackerWidgetLoaded();
+    }
     void track('home_mode_changed', { mode });
   }
 
@@ -739,7 +644,7 @@
   function focusStopOnMap(stop: StopResult, source: 'search_result' | 'boarding_panel') {
     mapFocusStop = stop;
     mapFocusAddress = null;
-    homeMode = 'map';
+    switchHomeMode('map');
     
     if (source === 'boarding_panel' && mapStopsWithRanking.length > 0) {
       const ranked = mapStopsWithRanking.find(rs => rs.stop.stop_id === stop.stop_id);
@@ -761,7 +666,7 @@
   function focusAddressOnMap(address: AddressResult) {
     mapFocusAddress = address;
     mapFocusStop = address.nearby_stops[0] ?? null;
-    homeMode = 'map';
+    switchHomeMode('map');
     void track('map_focus_address', {
       address: address.address,
       nearby_stop_count: address.nearby_stops.length
@@ -771,7 +676,7 @@
   function focusLandmarkOnMap(landmark: { landmark_name: string; nearby_stops: StopResult[] }) {
     mapFocusAddress = null;
     mapFocusStop = landmark.nearby_stops[0] ?? null;
-    homeMode = 'map';
+    switchHomeMode('map');
     routeInfoMessage = landmark.nearby_stops.length > 0
       ? `${landmark.landmark_name} centered on map.`
       : `${landmark.landmark_name}: no nearby stops yet.`;
@@ -799,26 +704,6 @@
     return { tier: 'low', label: 'Approximate area' };
   }
 
-  function distanceKm(fromLat: number, fromLon: number, toLat: number, toLon: number): number {
-    const toRad = (value: number) => (value * Math.PI) / 180;
-    const earthRadiusKm = 6371;
-
-    const dLat = toRad(toLat - fromLat);
-    const dLon = toRad(toLon - fromLon);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRad(fromLat)) * Math.cos(toRad(toLat)) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return earthRadiusKm * c;
-  }
-
-  function estimateWalkMinutes(km: number): number {
-    const walkingSpeedKmh = 4.8;
-    return Math.max(1, Math.round((km / walkingSpeedKmh) * 60));
-  }
-
   function openStopFromAddress(stop: StopResult, address: AddressResult, index: number) {
     selectedStop = stop;
     currentView = 'stop';
@@ -838,6 +723,84 @@
         mapModePanelEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     });
+  }
+
+  function handleThumbNavSearch() {
+    completeOnboarding('thumb_nav_search');
+    currentView = 'search';
+    switchHomeMode('list');
+  }
+
+  function handleThumbNavMap() {
+    completeOnboarding('thumb_nav_map');
+    recordOnboardingSignal('map', 'thumb_nav_map');
+    currentView = 'search';
+    switchHomeMode('map');
+  }
+
+  function handleThumbNavAlerts() {
+    completeOnboarding('thumb_nav_alerts');
+    currentView = 'alerts';
+  }
+
+  function handleResultSelect(result: SearchResult) {
+    if (result.type === 'stop') {
+      if (homeMode === 'map') {
+        highlightedAddress = null;
+        focusStopOnMap(result, 'search_result');
+      } else {
+        highlightedAddress = null;
+        selectedStop = result;
+        currentView = 'stop';
+      }
+      return;
+    }
+
+    if (result.type === 'route') {
+      highlightedAddress = null;
+      selectedRoute = result;
+      currentView = 'route';
+      void track('route_card_clicked', {
+        route_id: result.route_id,
+        route_number: result.route_number
+      });
+      return;
+    }
+
+    if (result.type === 'vehicle') {
+      highlightedAddress = null;
+      selectedVehicle = result;
+      currentView = 'vehicle';
+      void track('vehicle_card_clicked', {
+        vehicle_id: result.vehicle_id,
+        route_id: result.route_id
+      });
+      return;
+    }
+
+    if (result.type === 'address') {
+      focusAddressOnMap(result);
+      if (result.nearby_stops.length > 0) {
+        highlightedAddress = result;
+        routeInfoMessage = `${result.address}: best stop nearby.`;
+      } else {
+        highlightedAddress = null;
+        routeInfoMessage = `${result.address}: no nearby stops yet.`;
+      }
+      return;
+    }
+
+    if (result.type === 'landmark') {
+      focusLandmarkOnMap(result);
+    }
+  }
+
+  function handleMapPanelReady(event: CustomEvent<HTMLElement>) {
+    mapModePanelEl = event.detail;
+  }
+
+  function handleBoardingLegendReady(event: CustomEvent<HTMLDivElement>) {
+    boardingLegendEl = event.detail;
   }
 
   function getAddressKey(address: AddressResult): string {
@@ -1077,6 +1040,9 @@
             target: `${data.canonicalUrl}?q={search_term_string}`,
             'query-input': 'required name=search_term_string'
           },
+          author: {
+            '@id': `${new URL('/', data.canonicalUrl).toString()}#author`
+          },
           publisher: {
             '@id': `${new URL('/', data.canonicalUrl).toString()}#organization`
           }
@@ -1104,6 +1070,12 @@
             price: '0',
             priceCurrency: 'USD'
           },
+          author: {
+            '@id': `${new URL('/', data.canonicalUrl).toString()}#author`
+          },
+          creator: {
+            '@id': `${new URL('/', data.canonicalUrl).toString()}#author`
+          },
           publisher: {
             '@id': `${new URL('/', data.canonicalUrl).toString()}#organization`
           }
@@ -1130,7 +1102,7 @@
     <header class="app-header">
       <div class="header-layout">
         <div class="brand-lockup" aria-label="MBTA Tracker home">
-          <h1 class="app-logo">MBTA</h1>
+          <p class="app-logo">MBTA</p>
           <p class="brand-tagline">Transit command center</p>
         </div>
         <nav class="main-nav" aria-label="Primary navigation">
@@ -1317,85 +1289,18 @@
     {#if currentView === 'search'}
       <!-- Search View -->
       <div class="search-view">
-        <div class="search-container">
-          <section class="search-hero" aria-labelledby="search-hero-title">
-            <div class="search-hero-copy">
-              <p class="search-hero-kicker">Search-first transit</p>
-              <h2 id="search-hero-title">Find the next MBTA answer fast.</h2>
-              <p class="search-hero-subtext">Live data is labeled, cached data is clearly marked, and offline fallback never pretends to be live.</p>
-              <div class="search-hero-pills" aria-label="How the experience works">
-                {#each searchPrinciples as principle, index}
-                  <span class="hero-pill" style={`--stagger:${index};`}>{principle}</span>
-                {/each}
-              </div>
-            </div>
-          </section>
-
-          <SearchBox
-            onSearch={handleSearch}
-            placeholder="Search stop, route, address, vehicle"
-            autoFocus={true}
-          />
-
-          <section class="workflow-rail" aria-label="Guided one-tap workflows">
-            <div class="workflow-rail-head">
-              <h3>Start with one clear action</h3>
-              <p>No guessing. Pick the flow that matches your intent.</p>
-            </div>
-            <div class="workflow-grid">
-              {#each workflowIntents as intent}
-                <button
-                  class="workflow-card"
-                  on:click={() => void executeWorkflowIntent(intent.id)}
-                  aria-label={`${intent.actionLabel}: ${intent.title}`}
-                >
-                  <span class="workflow-title">{intent.title}</span>
-                  <span class="workflow-description">{intent.description}</span>
-                  <span class="workflow-action">{intent.actionLabel}</span>
-                </button>
-              {/each}
-            </div>
-          </section>
-
-          <section class="journey-rail" aria-label="Current progress through transit workflow">
-            <span class="journey-step" class:is-active={journeyStep >= 1}>1. Search</span>
-            <span class="journey-step" class:is-active={journeyStep >= 2}>2. Pick</span>
-            <span class="journey-step" class:is-active={journeyStep >= 3}>3. Ride</span>
-            <span class="journey-tip">Shortcut: press / to focus search instantly.</span>
-          </section>
-        </div>
-
-        {#if isSearching}
-          <div class="search-status" role="status" aria-live="polite">
-            Searching "{lastQuery}"...
-          </div>
-        {/if}
-
-        {#if searchError}
-          <div class="search-error" role="alert">
-            Search failed: {searchError}
-          </div>
-        {/if}
-
-        {#if routeInfoMessage}
-          <div class="search-info" role="status" aria-live="polite">
-            {routeInfoMessage}
-          </div>
-        {/if}
-
-        {#if !lastQuery && !isSearching}
-          <section class="starter-inline" aria-label="Quick start actions">
-            {#each quickQueries as query, index}
-              <button class="starter-inline-item" style={`--stagger:${index};`} on:click={() => handleSearch(query)}>
-                {query}
-              </button>
-            {/each}
-          </section>
-
-          <section class="search-guidance" aria-label="Suggested search patterns">
-            <p>Use route or stop when you know it. Use address for nearest boarding. Press / or Cmd/Ctrl+K to jump into search.</p>
-          </section>
-        {/if}
+        <HomeSearchFlow
+          searchPrinciples={searchPrinciples}
+          workflowIntents={workflowIntents}
+          journeyStep={journeyStep}
+          quickQueries={quickQueries}
+          isSearching={isSearching}
+          lastQuery={lastQuery}
+          searchError={searchError}
+          routeInfoMessage={routeInfoMessage}
+          onSearch={handleSearch}
+          on:workflow={(event) => void executeWorkflowIntent(event.detail)}
+        />
 
           {#if showPhase3Hub}
             <section class="feature-panel feature-panel-commute" aria-label="Commute Insights">
@@ -1409,208 +1314,33 @@
             </section>
           {/if}
 
-        {#if searchResults.length > 0}
-          <div class="results-section">
-            <div class="results-head">
-              <div>
-                <h2 class="results-title">Results</h2>
-                {#if searchResultSummaryPills.length > 0}
-                  <div class="results-summary-pills" aria-label="Search result summary">
-                    {#each searchResultSummaryPills as pill}
-                      <span class="results-summary-pill">{pill}</span>
-                    {/each}
-                  </div>
-                {/if}
-              </div>
-              <span class="results-count">{searchResults.length} match{searchResults.length === 1 ? '' : 'es'}</span>
-            </div>
-            <div class="results-grid">
-              {#each searchResults as result, index}
-                <button
-                  class="result-card"
-                  data-type={result.type}
-                  style={`--stagger:${index};`}
-                  aria-label={`${getResultActionLabel(result)} for ${getResultTitle(result)}`}
-                  on:click={() => {
-                    if (result.type === 'stop') {
-                      if (homeMode === 'map') {
-                        highlightedAddress = null;
-                        focusStopOnMap(result, 'search_result');
-                      } else {
-                        highlightedAddress = null;
-                        selectedStop = result;
-                        currentView = 'stop';
-                      }
-                    } else if (result.type === 'route') {
-                      highlightedAddress = null;
-                      selectedRoute = result;
-                      currentView = 'route';
-                      void track('route_card_clicked', {
-                        route_id: result.route_id,
-                        route_number: result.route_number
-                      });
-                    } else if (result.type === 'vehicle') {
-                      highlightedAddress = null;
-                      selectedVehicle = result;
-                      currentView = 'vehicle';
-                      void track('vehicle_card_clicked', {
-                        vehicle_id: result.vehicle_id,
-                        route_id: result.route_id
-                      });
-                    } else if (result.type === 'address') {
-                      focusAddressOnMap(result);
-                      if (result.nearby_stops.length > 0) {
-                        highlightedAddress = result;
-                        routeInfoMessage = `${result.address}: best stop nearby.`;
-                      } else {
-                        highlightedAddress = null;
-                        routeInfoMessage = `${result.address}: no nearby stops yet.`;
-                      }
-                    } else if (result.type === 'landmark') {
-                      focusLandmarkOnMap(result);
-                    }
-                  }}
-                >
-                  <div class="result-topline">
-                    <div class="result-type">{getResultKindLabel(result)}</div>
-                    <div class="result-action">{getResultActionLabel(result)}</div>
-                  </div>
-                  <div class="result-content">
-                    <div class="result-name">{getResultTitle(result)}</div>
-                    <div class="result-detail">{getResultDetail(result)}</div>
-                  </div>
-                  <div class="result-arrow">→</div>
-                </button>
-              {/each}
-            </div>
-          </div>
+        <HomeResultsSection
+          searchResults={searchResults}
+          searchResultSummaryPills={searchResultSummaryPills}
+          isSearching={isSearching}
+          searchError={searchError}
+          lastQuery={lastQuery}
+          on:select={(event) => handleResultSelect(event.detail)}
+        />
 
-          {#if homeMode === 'map'}
-            <section class="map-mode-panel" aria-label="Contextual map mode" bind:this={mapModePanelEl}>
-              <div class="map-mode-head">
-                <div class="map-mode-title">
-                  <p class="map-mode-kicker">Map mode</p>
-                  <h3>
-                    {#if mapStopsWithRanking.length > 1}
-                      Best boarding stop
-                    {:else if highlightedAddress}
-                      {highlightedAddress.address}
-                    {:else if mapFocusStop}
-                      {mapFocusStop.stop_name}
-                    {:else}
-                      Live map
-                    {/if}
-                  </h3>
-                </div>
-                <div class="map-mode-meta" aria-label="Map summary">
-                  {#if mapStopsWithRanking.length > 1}
-                    <span class="map-mode-chip">{mapStopsWithRanking.length} stops</span>
-                    <span class="map-mode-chip">best first</span>
-                  {:else if mapFocusAddress}
-                    {@const precision = getAddressPrecisionTone(mapFocusAddress)}
-                    <span class="map-mode-chip" data-tier={precision.tier}>{precision.label}</span>
-                  {:else if mapFocusStop}
-                    <span class="map-mode-chip">focused</span>
-                  {:else}
-                    <span class="map-mode-chip">tap a result</span>
-                  {/if}
-                </div>
-              </div>
-              <div class="map-mode-widget" aria-label="Live map with route and alert context">
-                {#key mapViewKey}
-                  <svelte:component this={TrackerWidget} config={homeMapConfig} />
-                {/key}
-              </div>
-            </section>
-          {/if}
-
-          {#if highlightedAddress && highlightedAddress.nearby_stops.length > 0}
-            <section class="boarding-panel" aria-label="Best nearby boarding stops">
-              <div class="boarding-panel-head">
-                <p class="boarding-kicker">Most intuitive pickup options</p>
-                <h3>Best nearby stops for {highlightedAddress!.address}</h3>
-                <p>Pick a stop below to open live arrivals immediately.</p>
-                <div
-                  class="boarding-legend"
-                  class:is-collapsed={isBoardingLegendCollapsed}
-                  bind:this={boardingLegendEl}
-                  aria-label="Nearby stop badge legend"
-                >
-                  <span class="boarding-legend-item" data-kind="walk">
-                    <span class="legend-text-long">Least walking</span>
-                    <span class="legend-text-short">Walk</span>
-                  </span>
-                  <span class="boarding-legend-item" data-kind="fast">
-                    <span class="legend-text-long">Soonest bus</span>
-                    <span class="legend-text-short">Fast</span>
-                  </span>
-                </div>
-              </div>
-              {#if boardingInsightsLoading}
-                <p class="boarding-state">Loading live route intelligence…</p>
-              {/if}
-              {#if boardingInsightsError}
-                <p class="boarding-state" data-state="error">{boardingInsightsError}</p>
-              {/if}
-              <div class="boarding-grid">
-                {#each highlightedAddress!.nearby_stops as stop, index}
-                  {@const walkKm = distanceKm(highlightedAddress!.latitude, highlightedAddress!.longitude, stop.latitude, stop.longitude)}
-                  {@const insight = boardingInsights[stop.stop_id]}
-                  {@const fastestStopId = getFastestStopId()}
-                  {@const leastWalkStopId = getLeastWalkStopId(highlightedAddress!)}
-                  {@const rankedStop = mapStopsWithRanking.find(rs => rs.stop.stop_id === stop.stop_id)}
-                  <article class="boarding-stop-card" data-rank={rankedStop?.rank || 'nearby'}>
-                    <div class="boarding-stop-top">
-                      <span class="boarding-rank">{rankedStop?.rank === 'best' ? '⭐' : rankedStop?.rank === 'good' ? '✓' : '•'} #{index + 1}</span>
-                      <div class="boarding-meta">
-                        {#if insight?.nextEtaMin !== null && insight?.nextEtaMin !== undefined}
-                          <span class="boarding-next">Next bus ~{insight.nextEtaMin} min</span>
-                        {/if}
-                        <span class="boarding-eta">~{estimateWalkMinutes(walkKm)} min walk</span>
-                      </div>
-                    </div>
-                    <div class="boarding-badges">
-                      {#if leastWalkStopId === stop.stop_id}
-                        <p class="boarding-badge" data-kind="walk">Least walking</p>
-                      {/if}
-                      {#if fastestStopId === stop.stop_id && insight?.nextEtaMin !== null}
-                        <p class="boarding-badge" data-kind="fast">Soonest bus</p>
-                      {/if}
-                    </div>
-                    <h4>{stop.stop_name}</h4>
-                    <p>{walkKm.toFixed(2)} km from your address</p>
-                    {#if insight?.routeNumbers?.length > 0}
-                      <div class="boarding-routes" aria-label="Top bus routes at this stop">
-                        {#each insight.routeNumbers as routeNumber}
-                          <span>{routeNumber}</span>
-                        {/each}
-                      </div>
-                    {/if}
-                    <div class="boarding-actions">
-                      <button on:click={() => openStopFromAddress(stop, highlightedAddress!, index)}>
-                        View live arrivals
-                      </button>
-                      <button class="ghost" on:click={() => openStopFromAddressOnMap(stop, highlightedAddress!, index)}>
-                        Focus on map
-                      </button>
-                    </div>
-                  </article>
-                {/each}
-              </div>
-            </section>
-          {/if}
-        {:else if !isSearching && !searchError && lastQuery}
-          <div class="empty-results">
-            <h2>No direct matches for "{lastQuery}"</h2>
-            {#if looksLikeAddressQuery(lastQuery)}
-              <p>
-                Try a shorter address, like <strong>878 Salem St, Malden</strong>, or pick an autocomplete suggestion so we can route you to the nearest stop.
-              </p>
-            {:else}
-              <p>Try a stop name like South Station, a route like Red Line, or a route number like 66.</p>
-            {/if}
-          </div>
-        {/if}
+        <HomeMapBoardingPanels
+          visible={searchResults.length > 0 && homeMode === 'map'}
+          {highlightedAddress}
+          {mapStopsWithRanking}
+          {mapFocusStop}
+          {mapFocusAddress}
+          {TrackerWidgetComponent}
+          {mapViewKey}
+          {homeMapConfig}
+          {boardingInsightsLoading}
+          {boardingInsightsError}
+          {boardingInsights}
+          {isBoardingLegendCollapsed}
+          on:panelready={handleMapPanelReady}
+          on:legendready={handleBoardingLegendReady}
+          on:openstop={(event) => openStopFromAddress(event.detail.stop, event.detail.address, event.detail.index)}
+          on:openstopmap={(event) => openStopFromAddressOnMap(event.detail.stop, event.detail.address, event.detail.index)}
+        />
       </div>
     {:else if currentView === 'stop' && selectedStop}
       <!-- Stop View -->
@@ -1651,2292 +1381,16 @@
   </main>
   </div>
 
-  <nav class="mobile-thumb-nav" aria-label="Quick mobile navigation">
-    <button
-      class="thumb-tab {currentView === 'search' && homeMode === 'list' ? 'active' : ''}"
-      on:click={() => {
-        completeOnboarding('thumb_nav_search');
-        currentView = 'search';
-        homeMode = 'list';
-      }}
-      aria-current={currentView === 'search' && homeMode === 'list' ? 'page' : undefined}
-    >
-      <svg class="thumb-icon" viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="11" cy="11" r="7"></circle>
-        <path d="M20 20l-3.8-3.8"></path>
-      </svg>
-      <span>Search</span>
-    </button>
-    <button
-      class="thumb-tab {currentView === 'search' && homeMode === 'map' ? 'active' : ''}"
-      on:click={() => {
-        completeOnboarding('thumb_nav_map');
-        recordOnboardingSignal('map', 'thumb_nav_map');
-        currentView = 'search';
-        switchHomeMode('map');
-      }}
-      aria-current={currentView === 'search' && homeMode === 'map' ? 'page' : undefined}
-    >
-      <svg class="thumb-icon" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M9 4L3.8 6.1v13.8L9 17.8l6 2.1 5.2-2.1V4.1L15 6.2 9 4z"></path>
-        <path d="M9 4v13.8M15 6.2v13.7"></path>
-      </svg>
-      <span>Map</span>
-    </button>
-    <button
-      class="thumb-tab {currentView === 'alerts' ? 'active' : ''}"
-      on:click={() => {
-        completeOnboarding('thumb_nav_alerts');
-        currentView = 'alerts';
-      }}
-      aria-current={currentView === 'alerts' ? 'page' : undefined}
-    >
-      <svg class="thumb-icon" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 3a6 6 0 0 0-6 6v3.5L4.3 16v1.5h15.4V16L18 12.5V9a6 6 0 0 0-6-6z"></path>
-        <path d="M10 19a2 2 0 0 0 4 0"></path>
-      </svg>
-      <span>Alerts</span>
-      {#if currentAlerts.length > 0}
-        <span class="thumb-badge">{currentAlerts.length}</span>
-      {/if}
-    </button>
-  </nav>
+  <HomeMobileThumbNav
+    isSearchListActive={currentView === 'search' && homeMode === 'list'}
+    isSearchMapActive={currentView === 'search' && homeMode === 'map'}
+    isAlertsActive={currentView === 'alerts'}
+    alertsCount={currentAlerts.length}
+    on:search={handleThumbNavSearch}
+    on:map={handleThumbNavMap}
+    on:alerts={handleThumbNavAlerts}
+  />
 
-  <!-- Footer -->
-  <footer class="app-footer">
-    <div class="footer-content">
-      <div class="footer-top">
-        <section class="footer-brand" aria-label="MBTA Tracker summary">
-          <p class="footer-title">MBTA Tracker</p>
-          <p class="footer-summary">Search-first transit that minimizes cognitive overload and keeps decisions fast.</p>
-          <p class="footer-live">Data from MBTA API • Updated in real-time</p>
-        </section>
-
-        <section class="footer-group" aria-label="Explore links">
-          <p class="footer-group-title">Explore</p>
-          <div class="footer-link-grid">
-            <a href="https://mbta.com" target="_blank" rel="noopener">
-              <svg class="footer-link-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4z"></path><path d="M7 9h10M7 12h10M7 15h6"></path></svg>
-              MBTA
-            </a>
-            <a href="/about">
-              <svg class="footer-link-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3"></circle><path d="M6 20a6 6 0 0 1 12 0"></path></svg>
-              About
-            </a>
-            <a href="/privacy">
-              <svg class="footer-link-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.4-2.5 8.1-7 10-4.5-1.9-7-5.6-7-10V6l7-3z"></path><path d="M9.5 12.5l1.8 1.8 3.5-3.5"></path></svg>
-              Privacy
-            </a>
-          </div>
-        </section>
-
-        <section class="footer-group" aria-label="Share and embed links">
-          <p class="footer-group-title">Share</p>
-          <div class="footer-link-grid">
-            <a href="/share">
-              <svg class="footer-link-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 8l-6 4 6 4"></path><path d="M9 12h9"></path><circle cx="6" cy="12" r="2"></circle><circle cx="18" cy="8" r="2"></circle><circle cx="18" cy="16" r="2"></circle></svg>
-              Share page
-            </a>
-            <a href="/embed">
-              <svg class="footer-link-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7l-5 5 5 5"></path><path d="M16 7l5 5-5 5"></path><path d="M14 4l-4 16"></path></svg>
-              Embed preview
-            </a>
-            <a href="#page-top">
-              <svg class="footer-link-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V6"></path><path d="M6.5 11.5L12 6l5.5 5.5"></path></svg>
-              Back to top
-            </a>
-          </div>
-        </section>
-      </div>
-
-      <p class="footer-ownership">
-        © 2026 <a href="https://ai-aarti.com" target="_blank" rel="noopener">Aarti S Ravikumar, Pioneer Charter School of Science II</a>
-      </p>
-      <p class="footer-credits" aria-label="Source credits">
-        Credits: <a href="https://www.mbta.com/" target="_blank" rel="noopener">MBTA</a>,
-        <a href="https://maplibre.org/" target="_blank" rel="noopener">MapLibre</a>,
-        <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener">OpenStreetMap</a>,
-        <a href="https://nominatim.org/" target="_blank" rel="noopener">Nominatim</a>,
-        <a href="https://carto.com/" target="_blank" rel="noopener">CARTO</a>
-      </p>
-    </div>
-  </footer>
+  <HomeFooter />
 </div>
 
-<style lang="postcss">
-  :global(:root) {
-    --bg-base: #f3f6fb;
-    --bg-elevated: #ffffff;
-    --bg-muted: #edf2f8;
-    --text-strong: #0f172a;
-    --text-body: #334155;
-    --text-soft: #64748b;
-    --border-soft: #d8e1ec;
-    --border-strong: #b9c9dd;
-    --brand: #1d4ed8;
-    --brand-strong: #1e40af;
-    --brand-mint: #0f766e;
-    --focus: rgba(37, 99, 235, 0.25);
-    --ease-premium: cubic-bezier(0.2, 0.85, 0.2, 1);
-  }
-  :global(body) {
-    @apply m-0 p-0;
-    overflow-x: clip;
-    background:
-      radial-gradient(circle at 8% 6%, rgba(29, 78, 216, 0.14), transparent 28%),
-      radial-gradient(circle at 92% 10%, rgba(15, 118, 110, 0.12), transparent 30%),
-      radial-gradient(circle at 50% 120%, rgba(148, 163, 184, 0.22), transparent 36%),
-      linear-gradient(180deg, #f8fbff 0%, #edf3f9 48%, #e9eef5 100%);
-    color: var(--text-body);
-    font-family: 'Manrope', 'Segoe UI', sans-serif;
-  }
-
-  .page-container {
-    @apply flex flex-col min-h-screen;
-    background: transparent;
-    position: relative;
-    overflow: clip;
-  }
-
-  .skip-link {
-    position: absolute;
-    left: 1rem;
-    top: 0.75rem;
-    z-index: 80;
-    padding: 0.65rem 0.85rem;
-    border-radius: 999px;
-    background: #0f172a;
-    color: #ffffff;
-    text-decoration: none;
-    transform: translateY(-140%);
-    transition: transform 160ms ease;
-    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
-  }
-
-  .skip-link:focus {
-    transform: translateY(0);
-    outline: none;
-  }
-
-  .page-container.high-contrast {
-    --bg-base: #ffffff;
-    --bg-elevated: #ffffff;
-    --bg-muted: #f8fafc;
-    --text-strong: #020617;
-    --text-body: #0f172a;
-    --text-soft: #1e293b;
-    --border-soft: #1f2937;
-    --border-strong: #0f172a;
-    --brand: #1d4ed8;
-    --brand-strong: #1e3a8a;
-  }
-
-  .page-container.dyslexia-font,
-  .page-container.dyslexia-font * {
-    font-family: 'OpenDyslexic', 'Atkinson Hyperlegible', 'Verdana', 'Segoe UI', sans-serif !important;
-  }
-
-  .layout-container {
-    display: flex;
-    flex: 1;
-    position: relative;
-    z-index: 1;
-    justify-content: center;
-  }
-  .alert-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 1.5rem;
-    height: 1.5rem;
-    padding: 0 0.4rem;
-    background: #dc2626;
-    color: #ffffff;
-    font-size: 0.65rem;
-    font-weight: 700;
-    border-radius: 999px;
-    flex-shrink: 0;
-  }
-
-  .ambient-layers {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    transform: translate3d(0, calc(var(--parallax-y, 0px) * -0.35), 0);
-    transition: transform 240ms var(--ease-premium);
-    will-change: transform;
-  }
-
-  .ambient-orb {
-    position: absolute;
-    border-radius: 999px;
-    filter: blur(12px);
-    opacity: 0.36;
-    animation: orbital-drift 18s ease-in-out infinite;
-    transform: translate3d(0, 0, 0);
-  }
-
-  .orb-one {
-    width: 18rem;
-    height: 18rem;
-    top: 7rem;
-    left: -5rem;
-    background: radial-gradient(circle at 35% 35%, rgba(191, 219, 254, 0.9), rgba(191, 219, 254, 0));
-  }
-
-  .orb-two {
-    width: 20rem;
-    height: 20rem;
-    top: 22rem;
-    right: -7rem;
-    animation-delay: 1.4s;
-    background: radial-gradient(circle at 40% 40%, rgba(153, 246, 228, 0.82), rgba(153, 246, 228, 0));
-  }
-
-  .orb-three {
-    width: 12rem;
-    height: 12rem;
-    bottom: 10rem;
-    left: 46%;
-    animation-delay: 2.4s;
-    background: radial-gradient(circle at 40% 40%, rgba(186, 230, 253, 0.8), rgba(186, 230, 253, 0));
-  }
-
-  .app-header {
-    @apply sticky top-0 z-40 border-b;
-    padding-top: env(safe-area-inset-top);
-    background:
-      linear-gradient(120deg, rgba(255, 255, 255, 0.84), rgba(243, 248, 255, 0.74)),
-      radial-gradient(circle at 8% 0%, rgba(29, 78, 216, 0.13), transparent 44%);
-    border-color: rgba(216, 225, 236, 0.9);
-    box-shadow:
-      0 12px 34px rgba(15, 23, 42, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(20px) saturate(128%);
-    position: relative;
-    animation: header-settle 520ms var(--ease-premium);
-  }
-
-  .app-header::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: -1px;
-    height: 1px;
-    background: linear-gradient(90deg, rgba(29, 78, 216, 0), rgba(29, 78, 216, 0.48), rgba(29, 78, 216, 0));
-    pointer-events: none;
-    animation: header-sheen 1100ms var(--ease-premium);
-  }
-
-  .header-layout {
-    @apply max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3;
-    width: min(100%, 72rem);
-    min-height: 3.4rem;
-  }
-
-  .brand-lockup {
-    display: grid;
-    gap: 0.12rem;
-    min-width: 0;
-    padding-left: 0.2rem;
-  }
-
-  .app-logo {
-    @apply text-[1.05rem] font-bold m-0 flex-shrink-0;
-    color: var(--brand);
-    font-family: 'Fraunces', serif;
-    letter-spacing: -0.018em;
-    line-height: 1.05;
-  }
-
-  .brand-tagline {
-    margin: 0;
-    font-size: 0.63rem;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    color: #64748b;
-    font-weight: 700;
-  }
-
-  .main-nav {
-    @apply flex items-center gap-1 flex-1 max-w-[31rem] p-1 rounded-full border;
-    background: rgba(248, 251, 255, 0.88);
-    border-color: rgba(216, 227, 239, 0.95);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.92),
-      0 14px 24px rgba(15, 23, 42, 0.06);
-  }
-
-  .nav-tab {
-    @apply inline-flex items-center justify-center px-3 py-1.5 text-[11px] font-semibold rounded-full transition-colors border-0;
-    background: transparent;
-    color: var(--text-soft);
-    cursor: pointer;
-    position: relative;
-    white-space: nowrap;
-    min-height: 2.1rem;
-  }
-
-  .nav-icon {
-    width: 0.95rem;
-    height: 0.95rem;
-    margin-right: 0.38rem;
-    stroke: currentColor;
-    stroke-width: 1.9;
-    fill: none;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    flex-shrink: 0;
-  }
-
-  .nav-label {
-    line-height: 1;
-  }
-
-  .nav-tab:hover {
-    background: #eef4ff;
-    color: var(--text-strong);
-  }
-
-  .nav-tab.active {
-    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 48%, #1e40af 100%);
-    box-shadow: 0 10px 20px rgba(29, 78, 216, 0.22);
-    color: #ffffff;
-  }
-
-  .alert-badge {
-    @apply inline-block ml-1 px-1.5 py-0.5 text-xs font-bold rounded-full;
-    background: #dc2626;
-    color: white;
-  }
-
-  .header-actions {
-    @apply flex items-center gap-2 ml-auto;
-    flex-shrink: 0;
-  }
-
-  .live-pill {
-    @apply inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-all duration-300;
-    border-color: rgba(15, 118, 110, 0.3);
-    background: linear-gradient(135deg, rgba(15, 118, 110, 0.08) 0%, rgba(15, 118, 110, 0.04) 100%);
-    color: #0d6e68;
-    white-space: nowrap;
-    min-height: 2.2rem;
-    box-shadow: 0 1px 3px rgba(15, 118, 110, 0.12), inset 0 1px 2px rgba(255, 255, 255, 0.5);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .live-pill::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    animation: live-shimmer 3000ms ease-in-out infinite;
-    pointer-events: none;
-  }
-
-  .live-pill span {
-    position: relative;
-    z-index: 1;
-  }
-
-  .live-icon {
-    position: relative;
-    z-index: 1;
-    animation: live-pulse 2000ms ease-in-out infinite;
-  }
-
-  .live-icon.live-radar {
-    animation: live-radar-sweep 2400ms linear infinite;
-  }
-
-  .live-pill[data-state='alert'] {
-    color: #be185d;
-    border-color: rgba(190, 24, 93, 0.3);
-    background: linear-gradient(135deg, rgba(190, 24, 93, 0.08) 0%, rgba(190, 24, 93, 0.04) 100%);
-    box-shadow: 0 1px 3px rgba(190, 24, 93, 0.12), inset 0 1px 2px rgba(255, 255, 255, 0.5);
-  }
-
-  .share-link {
-    @apply inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-full border transition-all duration-300;
-    border-color: rgba(59, 130, 246, 0.25);
-    color: #1e40af;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.06) 0%, rgba(59, 130, 246, 0.02) 100%);
-    text-decoration: none;
-    min-height: 2.2rem;
-    box-shadow: 0 1px 3px rgba(59, 130, 246, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.5);
-    position: relative;
-  }
-
-  .share-link::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    opacity: 0;
-    animation: share-shine 2500ms ease-in-out infinite;
-    pointer-events: none;
-  }
-
-  .share-link:hover {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.06) 100%);
-    border-color: rgba(59, 130, 246, 0.4);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15), inset 0 1px 2px rgba(255, 255, 255, 0.6);
-    transform: translateY(-1px);
-  }
-
-  .share-icon {
-    transition: transform 200ms ease-out;
-  }
-
-  .share-link:hover .share-icon {
-    transform: translateX(2px);
-  }
-
-  .settings-button {
-    @apply p-1.5 rounded-lg transition-colors border-0 cursor-pointer;
-    background: transparent;
-    color: var(--text-soft);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .settings-icon {
-    display: block;
-  }
-
-  .settings-button:hover {
-    @apply bg-gray-100;
-    color: var(--text-strong);
-  }
-
-  .settings-button.active {
-    background: var(--focus);
-    color: var(--brand);
-  }
-
-  .settings-panel {
-    @apply absolute top-full right-3 mt-1 bg-white rounded-lg border shadow-lg;
-    border-color: var(--border-soft);
-    z-index: 50;
-    min-width: 240px;
-    max-width: calc(100vw - 1rem);
-    animation: dropdown-in 200ms ease-out;
-    transform-origin: top right;
-    overflow: hidden;
-  }
-
-  .settings-group {
-    @apply p-3 border-b;
-    border-color: var(--border-soft);
-  }
-
-  .settings-group:last-of-type {
-    border-bottom: none;
-  }
-
-  .settings-group h3 {
-    @apply text-xs uppercase tracking-wider font-semibold m-0 mb-2;
-    color: var(--text-soft);
-  }
-
-  .setting-item {
-    @apply w-full text-left px-3 py-2 rounded text-sm transition-colors border-0 bg-transparent cursor-pointer;
-    color: var(--text-body);
-  }
-
-  .setting-item:hover {
-    @apply bg-gray-100;
-    color: var(--text-strong);
-  }
-
-  .setting-item.active {
-    background: var(--focus);
-    color: var(--brand);
-  }
-
-  .settings-footer {
-    @apply p-3 border-t;
-    border-color: var(--border-soft);
-  }
-
-  .close-settings {
-    @apply w-full px-3 py-2 rounded font-semibold transition-colors border-0 cursor-pointer;
-    background: var(--brand);
-    color: white;
-  }
-
-  .close-settings:hover {
-    background: var(--brand-strong);
-  }
-
-  @keyframes dropdown-in {
-    from {
-      opacity: 0;
-      transform: translateY(-8px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .main-content {
-    @apply flex-1 max-w-6xl mx-auto w-full px-4 py-5;
-    display: flex;
-    flex-direction: column;
-    gap: 0.8rem;
-    position: relative;
-    z-index: 1;
-    width: min(100%, 72rem);
-  }
-
-  .search-view {
-    @apply space-y-2 mx-auto w-full;
-    max-width: 72rem;
-    animation: fade-up 300ms var(--ease-premium);
-  }
-
-  .search-container {
-    @apply sticky top-24 z-30 rounded-[1.35rem] border mx-auto;
-    padding: 0.9rem 1rem 0.85rem 1rem;
-    width: 100%;
-    background: rgba(255, 255, 255, 0.82);
-    border-color: rgba(216, 225, 236, 0.95);
-    box-shadow:
-      0 18px 45px rgba(15, 23, 42, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(18px);
-    animation: panel-rise 420ms var(--ease-premium);
-  }
-
-  .search-hero {
-    @apply flex items-start justify-between gap-3 mb-2;
-    padding-left: 0.15rem;
-  }
-
-  .search-hero-copy {
-    @apply min-w-0;
-    padding-left: 0.2rem;
-  }
-
-  .search-hero-kicker {
-    @apply m-0 text-[11px] uppercase tracking-[0.22em] font-semibold;
-    color: var(--brand-mint);
-  }
-
-  .search-hero h2 {
-    @apply m-0 text-[1.08rem] font-semibold;
-    color: var(--text-strong);
-    letter-spacing: -0.02em;
-    line-height: 1.18;
-  }
-
-  .search-hero-subtext {
-    @apply m-0 text-xs;
-    color: var(--text-soft);
-    max-width: 42rem;
-    line-height: 1.5;
-  }
-
-  .search-hero-pills {
-    @apply mt-1.5 flex flex-wrap gap-1.5;
-  }
-
-  .hero-pill {
-    @apply inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold border;
-    background: linear-gradient(180deg, rgba(248, 251, 255, 0.96), rgba(239, 246, 255, 0.96));
-    border-color: rgba(214, 227, 243, 0.95);
-    color: #1e3a8a;
-    animation: chip-rise 240ms var(--ease-premium);
-    animation-delay: calc(var(--stagger, 0) * 40ms);
-    animation-fill-mode: both;
-  }
-
-  .search-guidance {
-    @apply mt-3 rounded-xl border px-3 py-2;
-    background: rgba(239, 246, 255, 0.7);
-    border-color: #c7dbf4;
-    color: #334155;
-  }
-
-  .search-guidance p {
-    @apply m-0 text-xs;
-    line-height: 1.45;
-  }
-
-  .workflow-rail {
-    @apply mt-2 rounded-2xl border;
-    background: linear-gradient(180deg, rgba(248, 251, 255, 0.92), rgba(239, 246, 255, 0.82));
-    border-color: #cbdcf2;
-    padding: 0.7rem;
-    animation: rail-reveal 360ms var(--ease-premium);
-    animation-delay: 80ms;
-    animation-fill-mode: both;
-  }
-
-  .workflow-rail-head h3 {
-    @apply m-0 text-sm font-semibold;
-    color: #0f172a;
-  }
-
-  .workflow-rail-head p {
-    @apply m-0 mt-0.5 text-xs;
-    color: #475569;
-  }
-
-  .workflow-grid {
-    @apply mt-1.5 grid gap-1.5;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .workflow-card {
-    @apply rounded-xl border text-left;
-    padding: 0.6rem;
-    background: rgba(255, 255, 255, 0.92);
-    border-color: #d7e4f5;
-    transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
-  }
-
-  .workflow-card:hover {
-    transform: translateY(-1px);
-    border-color: #93c5fd;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
-  }
-
-  .workflow-title {
-    @apply block text-xs font-semibold;
-    color: #0f172a;
-  }
-
-  .workflow-description {
-    @apply mt-0.5 block text-[11px];
-    color: #475569;
-    line-height: 1.35;
-  }
-
-  .workflow-action {
-    @apply mt-1.5 inline-flex text-[11px] font-semibold;
-    color: #1d4ed8;
-  }
-
-  .journey-rail {
-    @apply mt-2 flex flex-wrap items-center gap-1.5 rounded-xl border px-2.5 py-1.5;
-    background: rgba(255, 255, 255, 0.9);
-    border-color: #d8e1ec;
-    animation: rail-reveal 380ms var(--ease-premium);
-    animation-delay: 120ms;
-    animation-fill-mode: both;
-  }
-
-  .journey-step {
-    @apply inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold;
-    border-color: #d9e2ee;
-    color: #64748b;
-    background: #f8fafc;
-  }
-
-  .journey-step.is-active {
-    color: #1e3a8a;
-    border-color: #bfdbfe;
-    background: #eff6ff;
-  }
-
-  .journey-tip {
-    @apply ml-auto text-[11px];
-    color: #64748b;
-  }
-
-  .feature-panel {
-    @apply mt-3 w-full;
-    max-width: 72rem;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 1.75rem;
-    padding-right: 1.15rem;
-  }
-
-  .feature-panel-commute {
-    animation: panel-rise 320ms var(--ease-premium);
-  }
-
-  .feature-panel-trip {
-    animation: panel-rise 360ms var(--ease-premium);
-  }
-
-  .alerts-view-container {
-    @apply mx-auto w-full max-w-4xl px-4 py-4;
-  }
-
-  .search-status {
-    @apply mt-4 p-3 text-sm rounded-xl border;
-    background: #eff6ff;
-    border-color: #bfdbfe;
-    color: #1e3a8a;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .search-status::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    transform: translateX(-100%);
-    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.54), transparent);
-    animation: status-shine 1.7s ease-in-out infinite;
-  }
-
-  .search-error {
-    @apply mt-4 p-3 text-sm rounded-xl border;
-    background: #fff1f2;
-    border-color: #fecdd3;
-    color: #9f1239;
-  }
-
-  .search-info {
-    @apply mt-4 p-3 text-sm rounded-xl border;
-    background: #eff6ff;
-    border-color: #bfdbfe;
-    color: #1e3a8a;
-  }
-
-  .onboarding-hint {
-    @apply mt-2 rounded-2xl border;
-    padding: 0.7rem;
-    background: linear-gradient(120deg, rgba(239, 246, 255, 0.96), rgba(240, 253, 250, 0.96));
-    border-color: rgba(147, 197, 253, 0.78);
-    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
-    animation: rail-reveal 420ms var(--ease-premium);
-    animation-delay: 150ms;
-    animation-fill-mode: both;
-  }
-
-  .onboarding-kicker {
-    @apply m-0 text-[11px] font-semibold uppercase tracking-[0.2em];
-    color: #0f766e;
-  }
-
-  .onboarding-copy h3 {
-    @apply m-0 text-sm font-semibold;
-    color: #0f172a;
-    line-height: 1.35;
-  }
-
-  .onboarding-copy p {
-    @apply m-0 mt-0.5 text-xs;
-    color: #475569;
-    line-height: 1.5;
-  }
-
-  .onboarding-why {
-    @apply mt-1.5;
-    color: #1e3a8a;
-    font-weight: 600;
-  }
-
-  .onboarding-actions {
-    @apply mt-2 flex flex-wrap gap-2;
-  }
-
-  .onboarding-primary,
-  .onboarding-alt,
-  .onboarding-dismiss {
-    @apply rounded-full border px-3 py-1.5 text-xs font-semibold;
-  }
-
-  .onboarding-primary {
-    background: #1d4ed8;
-    border-color: #1e40af;
-    color: #ffffff;
-  }
-
-  .onboarding-dismiss {
-    background: rgba(255, 255, 255, 0.88);
-    border-color: #c7dbf4;
-    color: #1e3a8a;
-  }
-
-  .onboarding-alt {
-    background: rgba(255, 255, 255, 0.92);
-    border-color: #bfdbfe;
-    color: #1e40af;
-  }
-
-  .starter-inline {
-    @apply mt-2 flex flex-wrap gap-1.5;
-  }
-
-  .starter-inline-item {
-    @apply text-xs font-semibold rounded-full border px-3 py-1.5 text-left;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(243, 248, 255, 0.95));
-    border-color: #c9dbf3;
-    color: #1e3a8a;
-    transition: background 140ms ease, border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
-    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.04);
-  }
-
-  .starter-inline-item:hover {
-    background: #edf4ff;
-    border-color: #93c5fd;
-    transform: translateY(-1px);
-  }
-
-  .empty-results {
-    @apply mt-4 p-5 rounded-2xl border;
-    background: #f8fafc;
-    border-color: var(--border-soft);
-    color: var(--text-body);
-  }
-
-  .empty-results h2 {
-    @apply text-base font-semibold m-0;
-  }
-
-  .empty-results p {
-    @apply text-sm mt-2 mb-0;
-  }
-
-  .results-section {
-    @apply mt-2;
-  }
-
-  .results-head {
-    @apply flex items-end justify-between gap-3 mb-2;
-  }
-
-  .results-title {
-    @apply text-[0.82rem] font-semibold m-0 uppercase tracking-[0.22em];
-    color: var(--text-strong);
-  }
-
-  .results-summary-pills {
-    @apply mt-1.5 flex flex-wrap gap-2;
-  }
-
-  .results-summary-pill {
-    @apply inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold;
-    background: #f8fbff;
-    border-color: #d6e3f3;
-    color: #1e3a8a;
-  }
-
-  .results-count {
-    @apply inline-flex items-center rounded-full border px-3.5 py-2 text-xs font-bold;
-    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-    border-color: rgba(15, 78, 217, 0.25);
-    color: #0c4a6e;
-    white-space: nowrap;
-    box-shadow: 0 2px 8px rgba(15, 78, 217, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    animation: badge-pulse 400ms ease-out;
-  }
-
-  @keyframes badge-pulse {
-    0% {
-      transform: scale(0.92);
-      opacity: 0;
-    }
-    100% {
-      transform: scale(1);
-      opacity: 1;
-    }
-  }
-
-  .results-grid {
-    @apply grid gap-3;
-    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
-  }
-
-  .results-grid,
-  .empty-results,
-  .search-status,
-  .search-error,
-  .search-info,
-  .onboarding-hint,
-  .starter-inline,
-  .search-guidance,
-  .workflow-rail,
-  .journey-rail {
-    margin-left: auto;
-    margin-right: auto;
-    width: 100%;
-  }
-
-  .result-card {
-    @apply w-full flex flex-col gap-2 p-4 border rounded-2.5xl transition-all text-left cursor-pointer group;
-    min-height: 6.2rem;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(250, 252, 255, 0.92) 100%);
-    border-color: rgba(203, 213, 225, 0.6);
-    box-shadow:
-      0 1px 3px rgba(15, 23, 42, 0.04),
-      0 8px 24px rgba(15, 23, 42, 0.08),
-      inset 0 1px 1px rgba(255, 255, 255, 0.8);
-    animation: card-rise 300ms var(--ease-premium);
-    animation-delay: calc(var(--stagger, 0) * 55ms);
-    animation-fill-mode: both;
-    contain: layout paint;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .result-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 0.04rem;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
-    pointer-events: none;
-  }
-
-  .result-card:hover {
-    border-color: rgba(148, 163, 184, 0.5);
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 251, 255, 0.96) 100%);
-    transform: translateY(-3px) scale(1.005);
-    box-shadow:
-      0 1px 3px rgba(15, 23, 42, 0.04),
-      0 20px 48px rgba(15, 23, 42, 0.12),
-      inset 0 1px 1px rgba(255, 255, 255, 0.9);
-  }
-
-  .result-card:focus-visible,
-  .back-button:focus-visible,
-  .footer-links a:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 3px var(--focus);
-  }
-
-  .result-type {
-    @apply inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-full flex-shrink-0;
-    background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%);
-    color: #0c4a6e;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    box-shadow: 0 2px 8px rgba(15, 78, 217, 0.1);
-  }
-
-  .result-card[data-type='stop'] .result-type {
-    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-    color: #065f46;
-  }
-
-  .result-card[data-type='route'] .result-type {
-    background: linear-gradient(135deg, #fed7aa 0%, #fecaca 100%);
-    color: #7c2d12;
-  }
-
-  .result-card[data-type='address'] .result-type {
-    background: linear-gradient(135deg, #e9d5ff 0%, #f3e8ff 100%);
-    color: #5b21b6;
-  }
-
-  .result-card[data-type='vehicle'] .result-type {
-    background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
-    color: #831843;
-  }
-
-  .result-card[data-type='landmark'] .result-type {
-    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-    color: #166534;
-  }
-
-  .result-topline {
-    @apply flex items-center justify-between gap-2 w-full;
-    min-height: 1.8rem;
-  }
-
-  .result-action {
-    @apply text-[10px] font-bold uppercase rounded-full px-2.5 py-1.2 flex-shrink-0 tracking-wide;
-    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-    color: #0369a1;
-    white-space: nowrap;
-    box-shadow: 0 1px 3px rgba(15, 78, 217, 0.08);
-    transition: all 200ms ease-out;
-  }
-
-  .result-card:hover .result-action {
-    background: linear-gradient(135deg, #0369a1 0%, #0c4a6e 100%);
-    color: white;
-    transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(15, 78, 217, 0.2);
-  }
-
-  .result-content {
-    @apply flex-1;
-    width: 100%;
-  }
-
-  .result-name {
-    @apply font-bold;
-    color: var(--text-strong);
-    letter-spacing: -0.008em;
-    line-height: 1.4;
-    font-size: 15px;
-  }
-
-  .result-detail {
-    @apply text-[13px] leading-1.5;
-    color: var(--text-body);
-  }
-
-  .result-arrow {
-    @apply flex-shrink-0 opacity-0 group-hover:opacity-100;
-    color: #0369a1;
-    font-weight: 800;
-    font-size: 1.2rem;
-    transition: all 240ms cubic-bezier(0.34, 1.56, 0.64, 1);
-    align-self: flex-end;
-  }
-
-  .result-card:hover .result-arrow {
-    color: #0c4a6e;
-    transform: translateX(4px);
-  }
-
-  .boarding-panel {
-    @apply mt-3 rounded-2xl border;
-    padding: 0.9rem 0.9rem 0.9rem 1.2rem;
-    background: linear-gradient(145deg, rgba(251, 253, 255, 0.96) 0%, rgba(243, 248, 255, 0.96) 100%);
-    border-color: rgba(205, 223, 246, 0.95);
-    box-shadow:
-      0 18px 36px rgba(15, 23, 42, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.82);
-  }
-
-  .map-mode-panel {
-    @apply mt-4 p-4 rounded-2xl border;
-    background: linear-gradient(150deg, rgba(236, 245, 255, 0.95) 0%, rgba(248, 251, 255, 0.97) 100%);
-    border-color: rgba(198, 214, 234, 0.95);
-    box-shadow:
-      0 18px 36px rgba(15, 23, 42, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  }
-
-  .map-mode-head {
-    @apply flex items-center justify-between gap-3;
-  }
-
-  .map-mode-title {
-    @apply min-w-0;
-  }
-
-  .map-mode-head h3 {
-    @apply m-0 text-sm font-semibold;
-    color: var(--text-strong);
-    letter-spacing: -0.01em;
-    line-height: 1.25;
-  }
-
-  .map-mode-kicker {
-    @apply inline-block text-[10px] font-semibold uppercase tracking-[0.24em] mb-0.5;
-    color: #0f766e;
-  }
-
-  .map-mode-meta {
-    @apply flex flex-wrap justify-end gap-2;
-  }
-
-  .map-mode-chip {
-    @apply inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold;
-    background: #ffffff;
-    border-color: #cdddef;
-    color: #1e3a8a;
-  }
-
-  .map-mode-widget {
-    @apply mt-3 rounded-xl overflow-hidden border;
-    border-color: #cdddef;
-    min-height: 25rem;
-    background: #ffffff;
-  }
-
-  .boarding-panel-head h3 {
-    @apply m-0 text-base font-semibold;
-    color: var(--text-strong);
-    letter-spacing: -0.01em;
-  }
-
-  .boarding-panel-head p {
-    @apply m-0 mt-1 text-sm;
-    color: var(--text-soft);
-  }
-
-  .boarding-kicker {
-    @apply inline-block text-xs font-semibold uppercase tracking-wider mb-1;
-    color: #1e40af;
-  }
-
-  .boarding-grid {
-    @apply mt-3 grid gap-3;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  }
-
-  .boarding-legend {
-    @apply mt-2 flex flex-wrap items-center gap-2;
-  }
-
-  .boarding-legend-item {
-    @apply inline-block text-[11px] font-semibold px-2 py-1 rounded-full;
-  }
-
-  .boarding-legend-item .legend-text-short {
-    display: none;
-  }
-
-  .boarding-legend-item[data-kind='walk'] {
-    background: #dcfce7;
-    color: #166534;
-  }
-
-  .boarding-legend-item[data-kind='fast'] {
-    background: #ffedd5;
-    color: #9a3412;
-  }
-
-  @media (max-width: 768px) {
-    .boarding-legend {
-      @apply sticky z-10 py-2 flex-nowrap;
-      top: 0;
-      background: #f8fbff;
-      border-bottom: 1px solid #d7e3f3;
-      margin-top: 0.5rem;
-      margin-bottom: 0.5rem;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-
-    .boarding-legend::-webkit-scrollbar {
-      display: none;
-    }
-
-    .boarding-legend.is-collapsed {
-      @apply py-1 gap-1;
-    }
-
-    .boarding-legend.is-collapsed .boarding-legend-item {
-      @apply text-[10px] px-2 py-0.5;
-    }
-
-    .boarding-legend.is-collapsed .legend-text-long {
-      display: none;
-    }
-
-    .boarding-legend.is-collapsed .legend-text-short {
-      display: inline;
-    }
-  }
-
-  .boarding-state {
-    @apply mt-2 mb-0 text-xs;
-    color: #475569;
-  }
-
-  .boarding-state[data-state='error'] {
-    color: #b91c1c;
-  }
-
-  .boarding-stop-card {
-    @apply p-3 rounded-xl border;
-    background: #ffffff;
-    border-color: #d7e3f3;
-    transition: all 140ms ease;
-  }
-
-  .boarding-stop-card[data-rank='best'] {
-    background: #f0fdf4;
-    border-color: #86efac;
-    box-shadow: 0 0 12px rgba(34, 197, 94, 0.12);
-  }
-
-  .boarding-stop-card[data-rank='good'] {
-    background: #fffbeb;
-    border-color: #fcd34d;
-    box-shadow: 0 0 12px rgba(250, 204, 21, 0.08);
-  }
-
-  .boarding-stop-card[data-rank='nearby'] {
-    opacity: 0.85;
-  }
-
-  .boarding-stop-card[data-rank='best']:hover,
-  .boarding-stop-card[data-rank='good']:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-  }
-
-  .boarding-stop-top {
-    @apply flex items-center justify-between gap-2;
-  }
-
-  .boarding-meta {
-    @apply flex flex-col items-end gap-1;
-  }
-
-  .boarding-rank {
-    @apply text-xs font-semibold px-2 py-1 rounded-full;
-    color: #1e3a8a;
-    background: #dbeafe;
-  }
-
-  .boarding-eta {
-    @apply text-xs font-semibold;
-    color: #0f766e;
-  }
-
-  .boarding-next {
-    @apply text-xs font-semibold;
-    color: #1e3a8a;
-  }
-
-  .boarding-badges {
-    @apply mt-2 flex flex-wrap gap-1;
-    min-height: 1.25rem;
-  }
-
-  .boarding-badge {
-    @apply m-0 text-xs font-semibold px-2 py-0.5 rounded-full;
-  }
-
-  .boarding-badge[data-kind='walk'] {
-    background: #dcfce7;
-    color: #166534;
-  }
-
-  .boarding-badge[data-kind='fast'] {
-    background: #ffedd5;
-    color: #9a3412;
-  }
-
-  .boarding-stop-card h4 {
-    @apply m-0 mt-2 text-sm font-semibold;
-    color: var(--text-strong);
-    line-height: 1.35;
-  }
-
-  .boarding-stop-card p {
-    @apply m-0 mt-1 text-xs;
-    color: var(--text-soft);
-  }
-
-  .boarding-routes {
-    @apply mt-2 flex flex-wrap gap-1;
-  }
-
-  .boarding-routes span {
-    @apply inline-block text-xs font-semibold px-2 py-1 rounded-full;
-    color: #1e3a8a;
-    background: #dbeafe;
-  }
-
-  .boarding-actions {
-    @apply mt-3 flex flex-col gap-2;
-  }
-
-  .boarding-stop-card button {
-    @apply w-full text-xs font-semibold rounded-lg border px-3 py-2;
-    background: #1d4ed8;
-    color: #ffffff;
-    border-color: #1e40af;
-    transition: background 140ms ease;
-  }
-
-  .boarding-stop-card button.ghost {
-    background: #ffffff;
-    color: #1e3a8a;
-    border-color: #bfdbfe;
-  }
-
-  .boarding-stop-card button.ghost:hover {
-    background: #eff6ff;
-  }
-
-  .boarding-stop-card button:not(.ghost):hover {
-    background: #1e40af;
-  }
-
-  .view-header {
-    @apply flex items-center gap-4 mb-3;
-  }
-
-  .back-button {
-    @apply px-3 py-2 rounded-xl transition-colors text-sm font-semibold border;
-    background: #f8fafc;
-    border-color: var(--border-soft);
-    color: var(--text-strong);
-  }
-
-  .back-button:hover {
-    background: #eff6ff;
-    border-color: #bfdbfe;
-  }
-
-  .app-footer {
-    @apply border-t mt-10;
-    background:
-      linear-gradient(180deg, rgba(247, 249, 252, 0.95), rgba(240, 245, 250, 0.98)),
-      radial-gradient(circle at 50% 0%, rgba(29, 78, 216, 0.04), transparent 50%);
-    border-color: rgba(216, 225, 236, 0.6);
-    backdrop-filter: blur(12px);
-    box-shadow: 0 -12px 32px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-    animation: footer-rise 580ms var(--ease-premium);
-    animation-delay: 120ms;
-    animation-fill-mode: both;
-  }
-
-  .mobile-thumb-nav {
-    display: none;
-  }
-
-  .thumb-tab {
-    @apply inline-flex items-center justify-center gap-1 rounded-full border px-3 py-2 text-xs font-semibold;
-    background: rgba(255, 255, 255, 0.9);
-    border-color: rgba(203, 213, 225, 0.95);
-    color: #334155;
-    min-height: 2.25rem;
-  }
-
-  .thumb-icon {
-    width: 0.9rem;
-    height: 0.9rem;
-    stroke: currentColor;
-    stroke-width: 1.9;
-    fill: none;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    flex-shrink: 0;
-  }
-
-  .thumb-tab.active {
-    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 52%, #1e40af 100%);
-    border-color: #1e40af;
-    color: #ffffff;
-    box-shadow: 0 10px 20px rgba(29, 78, 216, 0.2);
-  }
-
-  .thumb-badge {
-    @apply inline-flex items-center justify-center rounded-full text-[10px] font-semibold;
-    min-width: 1.05rem;
-    height: 1.05rem;
-    padding: 0 0.25rem;
-    background: #dc2626;
-    color: #ffffff;
-  }
-
-  .footer-content {
-    @apply max-w-6xl mx-auto text-xs;
-    width: min(100%, 72rem);
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-    padding-top: 1.8rem;
-    padding-bottom: 1.8rem;
-    text-align: left;
-    color: var(--text-soft);
-    line-height: 1.55;
-    display: grid;
-    gap: 1rem;
-  }
-
-  .footer-top {
-    display: grid;
-    grid-template-columns: 1.4fr 1fr 1fr;
-    gap: 1.5rem;
-    align-items: start;
-  }
-
-  .footer-brand {
-    display: grid;
-    gap: 0.4rem;
-    border-bottom: 1px solid rgba(203, 213, 225, 0.4);
-    padding-bottom: 1rem;
-    margin-bottom: 0;
-  }
-
-  .footer-title {
-    margin: 0;
-    font-size: 0.88rem;
-    font-weight: 800;
-    color: #0f172a;
-    letter-spacing: -0.01em;
-  }
-
-  .footer-summary,
-  .footer-live {
-    margin: 0.4rem 0 0;
-    font-size: 11px;
-    color: var(--text-body);
-    line-height: 1.5;
-  }
-
-  .footer-live {
-    font-weight: 600;
-    color: var(--text-soft);
-    font-size: 10px;
-  }
-
-  .footer-group {
-    padding: 0;
-    border-radius: 0;
-    border: none;
-    background: transparent;
-    transition: none;
-    animation: none;
-  }
-
-  .footer-group:nth-of-type(1) {
-    animation-delay: 0;
-  }
-
-  .footer-group:nth-of-type(2) {
-    animation-delay: 0;
-  }
-
-  .footer-group:hover {
-    transform: none;
-    box-shadow: none;
-  }
-
-  .footer-group-title {
-    margin: 0 0 0.6rem 0;
-    text-transform: uppercase;
-    letter-spacing: 0.22em;
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--text-strong);
-  }
-
-  .footer-link-grid {
-    margin-top: 0.4rem;
-    display: grid;
-    gap: 0.35rem;
-  }
-
-  .footer-link-grid a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 1.9rem;
-    text-decoration: none;
-    color: #1d4ed8;
-    font-weight: 700;
-    border-radius: 0.55rem;
-    padding: 0.22rem 0.45rem;
-    gap: 0.38rem;
-  }
-
-  .footer-link-icon {
-    width: 0.9rem;
-    height: 0.9rem;
-    stroke: currentColor;
-    stroke-width: 1.6;
-    fill: none;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    flex-shrink: 0;
-    transition: transform 200ms ease-out;
-  }
-
-  .footer-link-grid a:hover .footer-link-icon {
-    transform: scale(1.15);
-  }
-
-  .footer-link-grid a:hover {
-    background: #eff6ff;
-    color: #1e40af;
-  }
-
-  .footer-ownership {
-    margin: 0;
-    font-size: 9px;
-    color: var(--text-soft);
-    letter-spacing: 0;
-    display: block;
-    padding: 1rem 0 0 0;
-    border-top: 1px solid rgba(203, 213, 225, 0.4);
-    width: 100%;
-    background: transparent;
-    box-shadow: none;
-  }
-
-  .footer-ownership a {
-    color: #1e40af;
-    text-decoration: none;
-    font-weight: 500;
-    border-bottom: 1px solid #1e40af;
-    transition: color 200ms ease-out;
-  }
-
-  .footer-ownership a:hover {
-    color: #1d4ed8;
-    border-bottom-color: #1d4ed8;
-  }
-
-  .footer-credits {
-    margin: 0.6rem 0 0 0;
-    font-size: 9px;
-    color: var(--text-soft);
-    line-height: 1.5;
-    max-width: 70ch;
-  }
-
-  .footer-credits a {
-    color: #1e40af;
-    text-decoration: none;
-    font-weight: 500;
-    border-bottom: 1px solid transparent;
-    transition: all 200ms ease-out;
-  }
-
-  .footer-credits a:hover {
-    color: #1d4ed8;
-    border-bottom-color: #1d4ed8;
-  }
-
-  @media (max-width: 1024px) {
-    .orb-three {
-      display: none;
-    }
-
-    .ambient-layers {
-      transform: none;
-      transition: none;
-      will-change: auto;
-    }
-  }
-
-  /* Tablet & Desktop Responsive Layout */
-  @media (min-width: 768px) {
-    .layout-container {
-      display: flex;
-      flex: 1;
-      justify-content: center;
-    }
-
-    .main-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding-left: 1.75rem;
-      padding-right: 1.75rem;
-    }
-
-  }
-
-  @media (min-width: 641px) {
-    .header-layout {
-      display: grid;
-      grid-template-columns: auto minmax(0, 1fr) auto;
-      align-items: center;
-      gap: 0.75rem;
-      padding-left: 1.75rem;
-      padding-right: 1.75rem;
-      width: min(100%, 72rem);
-    }
-
-    .main-nav {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 0.35rem;
-      min-width: 0;
-    }
-
-    .nav-tab {
-      width: 100%;
-      min-width: 0;
-    }
-
-    .settings-panel {
-      display: grid !important;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      align-items: stretch;
-      gap: 0;
-      min-width: 0;
-      width: min(92vw, 860px);
-      max-width: 100%;
-      padding: 0.25rem;
-    }
-
-    .settings-group {
-      display: flex !important;
-      flex-direction: row !important;
-      flex-wrap: nowrap !important;
-      align-items: center;
-      justify-content: flex-start;
-      gap: 0.4rem;
-      flex: 1 1 0;
-      padding: 0.75rem 0.8rem;
-      border-bottom: none;
-      border-right: 1px solid var(--border-soft);
-    }
-
-    .settings-group:nth-child(2n) {
-      border-right: none;
-    }
-
-    .settings-group h3 {
-      width: auto;
-      margin: 0 0.15rem 0 0;
-      flex: 0 0 auto;
-      white-space: nowrap;
-    }
-
-    .setting-item {
-      width: auto;
-      flex: 1 1 0;
-      min-width: 0;
-      padding: 0.45rem 0.65rem;
-      border: 1px solid var(--border-soft);
-      background: #f8fbff;
-      border-radius: 999px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .settings-footer {
-      display: flex !important;
-      align-items: center;
-      padding: 0.7rem 0.8rem 0.8rem;
-      border-top: 1px solid var(--border-soft);
-      grid-column: 1 / -1;
-      width: 100%;
-    }
-
-    .close-settings {
-      width: auto;
-      min-width: 7rem;
-      margin-left: auto;
-    }
-  }
-
-  @media (pointer: coarse) {
-    .workflow-card:hover,
-    .starter-inline-item:hover,
-    .result-card:hover {
-      transform: none;
-      box-shadow: none;
-    }
-  }
-
-  /* Mobile Navigation */
-  @media (max-width: 767px) {
-    .nav-tab {
-      padding: 1rem 1.25rem;
-    }
-  }
-
-  .footer-links {
-    @apply flex gap-4 mt-2;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-  }
-
-  .footer-links a {
-    @apply transition-colors;
-    color: #1d4ed8;
-  }
-
-  .footer-links a:hover {
-    color: #1e40af;
-  }
-
-  /* Mobile */
-  @media (max-width: 640px) {
-    .skip-link {
-      left: 0.65rem;
-      top: 0.65rem;
-    }
-
-    .header-layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      grid-template-areas:
-        'brand actions'
-        'nav nav';
-      align-items: center;
-      gap: 0.6rem 0.65rem;
-      padding-left: 0.75rem;
-      padding-right: 0.75rem;
-    }
-
-    .app-logo {
-      grid-area: brand;
-    }
-
-    .brand-lockup {
-      padding-left: 0;
-    }
-
-    .brand-tagline {
-      font-size: 0.58rem;
-      letter-spacing: 0.12em;
-    }
-
-    .main-nav {
-      grid-area: nav;
-      width: 100%;
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 0.35rem;
-      padding: 0.35rem;
-      border-radius: 1.05rem;
-    }
-
-    .nav-tab {
-      width: 100%;
-      min-height: 2.45rem;
-      padding: 0.7rem 0.3rem;
-      font-size: 0.72rem;
-      letter-spacing: 0.01em;
-      gap: 0.2rem;
-      flex-direction: column;
-    }
-
-    .nav-icon {
-      margin-right: 0;
-      width: 0.84rem;
-      height: 0.84rem;
-    }
-
-    .nav-label {
-      font-size: 0.68rem;
-    }
-
-    .header-actions {
-      grid-area: actions;
-      gap: 0.35rem;
-      justify-self: end;
-    }
-
-    .live-pill {
-      min-height: 2.3rem;
-      padding-left: 0.55rem;
-      padding-right: 0.55rem;
-      font-size: 0.68rem;
-    }
-
-    .share-link {
-      display: inline-flex;
-      min-height: 2.3rem;
-      padding-left: 0.62rem;
-      padding-right: 0.62rem;
-      font-size: 0.68rem;
-    }
-
-    .header-layout {
-      @apply py-2;
-    }
-
-    .settings-panel {
-      left: 0.75rem;
-      right: 0.75rem;
-      min-width: 0;
-      width: auto;
-      transform-origin: top center;
-      display: block;
-    }
-
-    .main-content {
-      @apply px-3;
-      padding-top: 0.85rem;
-      padding-bottom: 6rem;
-    }
-
-    .search-container {
-      @apply py-3;
-      padding-left: 0.72rem;
-      padding-right: 0.72rem;
-      position: static;
-      border-radius: 1.15rem;
-      box-shadow:
-        0 12px 30px rgba(15, 23, 42, 0.1),
-        inset 0 1px 0 rgba(255, 255, 255, 0.85);
-    }
-
-    .search-hero {
-      @apply flex-col gap-1.5;
-      margin-bottom: 0.5rem;
-    }
-
-    .search-hero h2 {
-      @apply text-[1rem];
-      max-width: 22ch;
-    }
-
-    .search-hero-subtext {
-      @apply text-[11px];
-      max-width: none;
-    }
-
-    .search-hero-pills {
-      margin-top: 0.45rem;
-      gap: 0.35rem;
-    }
-
-    .hero-pill {
-      padding: 0.4rem 0.6rem;
-      font-size: 0.7rem;
-    }
-
-    .search-guidance {
-      display: none;
-    }
-
-    .onboarding-hint {
-      margin-top: 0.45rem;
-      padding: 0.55rem;
-    }
-
-    .onboarding-actions {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 0.35rem;
-    }
-
-    .onboarding-primary,
-    .onboarding-alt,
-    .onboarding-dismiss {
-      min-height: 2.35rem;
-      width: 100%;
-    }
-
-    .workflow-grid {
-      grid-template-columns: 1fr;
-      gap: 0.45rem;
-    }
-
-    .workflow-card {
-      min-height: 4.15rem;
-    }
-
-    .journey-tip {
-      width: 100%;
-      margin-left: 0;
-    }
-
-    .search-view {
-      @apply space-y-1.5;
-    }
-
-    .feature-panel {
-      padding-left: 0.85rem;
-      padding-right: 0.85rem;
-    }
-
-    .starter-inline {
-      margin-top: 0.45rem;
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 0.3rem;
-      opacity: 0.84;
-    }
-
-    .starter-inline-item {
-      width: 100%;
-      white-space: normal;
-      font-size: 0.7rem;
-      padding: 0.55rem 0.7rem;
-      background: #f8fbff;
-      border-color: #d8e4f1;
-      box-shadow: none;
-      min-height: 2.5rem;
-    }
-
-    .results-head {
-      @apply flex-col items-start;
-    }
-
-    .results-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .result-card {
-      padding: 0.65rem;
-      align-items: flex-start;
-      gap: 0.5rem;
-    }
-
-    .boarding-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .boarding-panel {
-      padding: 0.9rem 0.9rem 0.9rem 1rem;
-    }
-
-    .boarding-panel-head h3 {
-      @apply text-[1rem];
-    }
-
-    .boarding-panel-head p {
-      @apply text-xs;
-    }
-
-    .boarding-stop-top {
-      @apply flex-col items-start;
-    }
-
-    .boarding-meta {
-      @apply items-start;
-    }
-
-    .boarding-actions {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .boarding-stop-card button {
-      min-height: 2.45rem;
-    }
-
-    .map-mode-head {
-      @apply flex-col items-start;
-    }
-
-    .map-mode-meta {
-      @apply justify-start;
-    }
-
-    .map-mode-widget {
-      min-height: 20.5rem;
-    }
-
-    .result-arrow {
-      margin-top: 0.2rem;
-    }
-
-    .app-footer {
-      margin-top: 1.3rem;
-      padding-left: 0.35rem;
-      padding-right: 0.35rem;
-    }
-
-    .footer-content {
-      padding-left: 0.8rem;
-      padding-right: 0.8rem;
-      gap: 0.4rem;
-      padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
-      border-radius: 1rem 1rem 0 0;
-    }
-
-    .footer-top {
-      grid-template-columns: 1fr;
-      gap: 0.4rem;
-    }
-
-    .footer-group {
-      padding: 0.4rem 0.4rem;
-    }
-
-    .footer-ownership {
-      font-size: 0.68rem;
-      padding: 0.2rem 0.45rem;
-    }
-
-    .footer-credits {
-      font-size: 0.68rem;
-    }
-
-    .footer-links {
-      gap: 0.7rem;
-      margin-top: 0.1rem;
-    }
-
-    .mobile-thumb-nav {
-      position: fixed;
-      left: 0.75rem;
-      right: 0.75rem;
-      bottom: max(0.55rem, env(safe-area-inset-bottom));
-      z-index: 70;
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 0.4rem;
-      padding: 0.4rem;
-      border-radius: 1rem;
-      border: 1px solid rgba(203, 213, 225, 0.9);
-      background: rgba(255, 255, 255, 0.88);
-      backdrop-filter: blur(16px);
-      box-shadow: 0 18px 36px rgba(15, 23, 42, 0.16);
-    }
-
-    .orb-three {
-      left: 35%;
-    }
-  }
-
-  @media (max-width: 420px) {
-    .main-content {
-      padding-left: 0.6rem;
-      padding-right: 0.6rem;
-    }
-
-    .starter-inline {
-      grid-template-columns: 1fr;
-    }
-
-    .boarding-actions {
-      grid-template-columns: 1fr;
-    }
-
-    .onboarding-actions {
-      grid-template-columns: 1fr;
-    }
-
-    .workflow-rail {
-      padding: 0.65rem;
-    }
-
-    .journey-rail {
-      padding-left: 0.6rem;
-      padding-right: 0.6rem;
-    }
-  }
-
-  @media (max-width: 360px) {
-    .header-layout {
-      padding-left: 0.55rem;
-      padding-right: 0.55rem;
-      gap: 0.45rem 0.5rem;
-    }
-
-    .nav-tab {
-      padding: 0.68rem 0.28rem;
-      font-size: 0.68rem;
-    }
-
-    .search-hero h2 {
-      @apply text-[0.98rem];
-    }
-
-    .search-hero-subtext {
-      @apply text-[10px];
-    }
-
-    .search-hero-pills {
-      gap: 0.4rem;
-    }
-
-    .hero-pill,
-    .results-summary-pill,
-    .results-count,
-    .map-mode-chip {
-      @apply text-[10px];
-    }
-  }
-
-  @media (min-width: 1536px) {
-    .main-content {
-      max-width: 88rem;
-    }
-  }
-
-  @media (prefers-contrast: more) {
-    .app-header {
-      background: linear-gradient(115deg, #08192e 0%, #1e3a8a 56%, #14532d 100%);
-    }
-  }
-
-  /* Accessibility */
-  @media (prefers-reduced-motion: reduce) {
-    .ambient-orb,
-    .app-header,
-    .app-header::after,
-    .workflow-rail,
-    .journey-rail,
-    .onboarding-hint,
-    .app-footer,
-    .footer-group,
-    .starter-inline-item,
-    .result-card,
-    .search-view,
-    .search-container,
-    .ambient-layers,
-    .search-status::after {
-      transition: none;
-      animation: none;
-    }
-
-    .ambient-layers {
-      transform: none;
-      will-change: auto;
-    }
-  }
-
-  @keyframes fade-up {
-    from {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes chip-rise {
-    from {
-      opacity: 0;
-      transform: translateY(8px) scale(0.98);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
-
-  @keyframes card-rise {
-    from {
-      opacity: 0;
-      transform: translateY(12px) scale(0.992);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
-
-  @keyframes panel-rise {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes status-shine {
-    to {
-      transform: translateX(120%);
-    }
-  }
-
-  @keyframes orbital-drift {
-    0%,
-    100% {
-      transform: translate3d(0, 0, 0) scale(1);
-    }
-    50% {
-      transform: translate3d(10px, -12px, 0) scale(1.04);
-    }
-  }
-
-  @keyframes header-settle {
-    from {
-      opacity: 0;
-      transform: translateY(-10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes header-sheen {
-    from {
-      opacity: 0;
-      transform: scaleX(0.2);
-    }
-    to {
-      opacity: 1;
-      transform: scaleX(1);
-    }
-  }
-
-  @keyframes rail-reveal {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes footer-rise {
-    from {
-      opacity: 0;
-      transform: translateY(14px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes footer-card-in {
-    from {
-      opacity: 0;
-      transform: translateY(10px) scale(0.995);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
-
-  @keyframes live-pulse {
-    0%, 100% {
-      transform: scale(1);
-      opacity: 1;
-    }
-    50% {
-      transform: scale(1.2);
-      opacity: 0.8;
-    }
-  }
-
-  @keyframes live-radar-sweep {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg);
-    }
-  }
-
-  @keyframes live-shimmer {
-    0% {
-      transform: translateX(-100%);
-      opacity: 0;
-    }
-    50% {
-      opacity: 1;
-    }
-    100% {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-  }
-
-  @keyframes share-shine {
-    0% {
-      transform: translateX(-100%);
-      opacity: 0;
-    }
-    50% {
-      opacity: 1;
-    }
-    100% {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-  }
-
-  @keyframes live-ping {
-    0%,
-    100% {
-      box-shadow: 0 0 0 0 rgba(15, 118, 110, 0.28);
-    }
-    55% {
-      box-shadow: 0 0 0 7px rgba(15, 118, 110, 0);
-    }
-  }
-</style>

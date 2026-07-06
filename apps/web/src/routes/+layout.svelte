@@ -2,8 +2,13 @@
   import { page } from '$app/stores';
   const clarityProjectId = import.meta.env.PUBLIC_CLARITY_PROJECT_ID as string | undefined;
   const siteUrlFromEnv = import.meta.env.PUBLIC_SITE_URL as string | undefined;
+  const googleSiteVerification = import.meta.env.PUBLIC_GOOGLE_SITE_VERIFICATION as string | undefined;
+  const bingSiteVerification = import.meta.env.PUBLIC_BING_SITE_VERIFICATION as string | undefined;
+  const yandexSiteVerification = import.meta.env.PUBLIC_YANDEX_SITE_VERIFICATION as string | undefined;
+  const baiduSiteVerification = import.meta.env.PUBLIC_BAIDU_SITE_VERIFICATION as string | undefined;
 
   $: siteOrigin = (siteUrlFromEnv ? siteUrlFromEnv.replace(/\/$/, '') : $page.url.origin);
+  $: currentPageUrl = `${siteOrigin}${$page.url.pathname}`;
   $: organizationSchema = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
@@ -11,6 +16,21 @@
     name: 'MBTA Tracker',
     url: siteOrigin,
     logo: `${siteOrigin}/mbta-social-preview.svg`,
+    founder: {
+      '@id': `${siteOrigin}/#author`
+    },
+    creator: {
+      '@id': `${siteOrigin}/#author`
+    },
+    sameAs: ['https://ai-aarti.com', 'https://github.com/aartisr']
+  };
+
+  $: authorSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    '@id': `${siteOrigin}/#author`,
+    name: 'Aarti S Ravikumar',
+    url: 'https://ai-aarti.com',
     sameAs: ['https://ai-aarti.com', 'https://github.com/aartisr']
   };
 
@@ -20,15 +40,37 @@
 <svelte:head>
   <meta name="color-scheme" content="light" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="format-detection" content="telephone=no,address=no,email=no" />
   <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
   <meta name="application-name" content="MBTA Tracker" />
+  <meta name="author" content="Aarti S Ravikumar" />
+  <meta name="copyright" content="Aarti S Ravikumar" />
   <meta name="apple-mobile-web-app-title" content="MBTA Tracker" />
+  <meta name="geo.region" content="US-MA" />
+  <meta name="geo.placename" content="Boston" />
+  <meta name="ICBM" content="42.3601, -71.0589" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta property="og:locale" content="en_US" />
+  <link rel="alternate" hreflang="en-US" href={currentPageUrl} />
+  <link rel="alternate" hreflang="x-default" href={currentPageUrl} />
+  <link rel="manifest" href="/site.webmanifest" />
   <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
   <link rel="alternate" type="text/plain" title="LLMs" href="/llms.txt" />
   <link rel="alternate" type="text/plain" title="AI Profile" href="/ai.txt" />
+  {#if googleSiteVerification}
+    <meta name="google-site-verification" content={googleSiteVerification} />
+  {/if}
+  {#if bingSiteVerification}
+    <meta name="msvalidate.01" content={bingSiteVerification} />
+  {/if}
+  {#if yandexSiteVerification}
+    <meta name="yandex-verification" content={yandexSiteVerification} />
+  {/if}
+  {#if baiduSiteVerification}
+    <meta name="baidu-site-verification" content={baiduSiteVerification} />
+  {/if}
   <script type="application/ld+json">{JSON.stringify(organizationSchema)}</script>
+  <script type="application/ld+json">{JSON.stringify(authorSchema)}</script>
   {#if clarityProjectId}
     <script type="text/javascript">
       {`

@@ -50,6 +50,11 @@
         name: 'MBTA Tracker Share Page',
         url: data.canonicalUrl,
         inLanguage: 'en-US',
+        author: {
+          '@type': 'Person',
+          '@id': `${new URL('/', data.canonicalUrl).toString()}#author`,
+          name: 'Aarti S Ravikumar'
+        },
         description:
           'MBTA Tracker is a compact search-first transit experience for Boston with live arrivals, nearby stops, route discovery, and an embeddable widget.'
       },
@@ -113,6 +118,7 @@
 
 <svelte:head>
   <title>MBTA Tracker Share Page</title>
+  <meta name="author" content="Aarti S Ravikumar" />
   <meta
     name="description"
     content="MBTA Tracker is a compact search-first transit experience for Boston with live arrivals, nearby stops, route discovery, and an embeddable widget."

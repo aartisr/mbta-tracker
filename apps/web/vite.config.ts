@@ -17,11 +17,17 @@ export default defineConfig({
     }
   },
   build: {
+    // MapLibre is intentionally lazy-loaded as a dedicated chunk and remains large by design.
+    chunkSizeWarningLimit: 1200,
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (id.includes('maplibre-gl')) {
             return 'maplibre';
+          }
+
+          if (id.includes('supercluster')) {
+            return 'supercluster';
           }
 
           if (id.includes('protobufjs')) {

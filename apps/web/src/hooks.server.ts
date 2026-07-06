@@ -19,11 +19,18 @@ const CONTENT_SECURITY_POLICY = [
 
 export const handle: Handle = async ({ event, resolve }) => {
   const response = await resolve(event);
+  const { pathname } = event.url;
 
   response.headers.set('Content-Security-Policy', CONTENT_SECURITY_POLICY);
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('X-Frame-Options', 'DENY');
+
+  if (pathname.startsWith('/embed')) {
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  } else if (pathname.startsWith('/api') || pathname === '/health') {
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  }
 
   return response;
 };

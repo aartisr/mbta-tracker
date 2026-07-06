@@ -7,6 +7,7 @@
 
 <svelte:head>
   <title>About MBTA Tracker | Search-First Boston Transit</title>
+  <meta name="author" content="Aarti S Ravikumar" />
   <meta
     name="description"
     content="About MBTA Tracker: a search-first MBTA experience designed to reduce cognitive load and speed up transit decisions."
@@ -37,6 +38,11 @@
       url: data.canonicalUrl,
       description:
         'About MBTA Tracker: a search-first MBTA experience designed to reduce cognitive load and speed up transit decisions.',
+      author: {
+        '@type': 'Person',
+        name: 'Aarti S Ravikumar',
+        url: 'https://ai-aarti.com'
+      },
       isPartOf: {
         '@type': 'WebSite',
         name: 'MBTA Tracker',

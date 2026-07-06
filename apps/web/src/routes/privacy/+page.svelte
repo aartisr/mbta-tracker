@@ -7,6 +7,7 @@
 
 <svelte:head>
   <title>Privacy | MBTA Tracker</title>
+  <meta name="author" content="Aarti S Ravikumar" />
   <meta
     name="description"
     content="Privacy information for MBTA Tracker, including telemetry, storage, and third-party services."

@@ -1,0 +1,19 @@
+{
+  "name": "MBTA Tracker",
+  "short_name": "MBTA",
+  "description": "Search-first MBTA transit experience with live arrivals, routes, stops, and map context.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8fbff",
+  "theme_color": "#1d4ed8",
+  "lang": "en-US",
+  "icons": [
+    {
+      "src": "/mbta-social-preview.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
