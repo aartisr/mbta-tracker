@@ -6,8 +6,10 @@
 </script>
 
 <svelte:head>
-  <title>About MBTA Tracker | Search-First Boston Transit</title>
+  <title>About MBTA Tracker | Search-First Boston Transit | By Aarti S Ravikumar</title>
   <meta name="author" content="Aarti S Ravikumar" />
+  <meta name="creator" content="Aarti S Ravikumar" />
+  <meta name="copyright" content="Aarti S Ravikumar" />
   <meta
     name="description"
     content="About MBTA Tracker: a search-first MBTA experience designed to reduce cognitive load and speed up transit decisions."
@@ -16,7 +18,7 @@
   <link rel="canonical" href={data.canonicalUrl} />
   <meta property="og:type" content="article" />
   <meta property="og:site_name" content="MBTA Tracker" />
-  <meta property="og:title" content="About MBTA Tracker | Search-First Boston Transit" />
+  <meta property="og:title" content="About MBTA Tracker | Search-First Boston Transit | By Aarti S Ravikumar" />
   <meta
     property="og:description"
     content="Learn how MBTA Tracker reduces cognitive load with a compact search-first transit experience."
@@ -24,7 +26,7 @@
   <meta property="og:url" content={data.canonicalUrl} />
   <meta property="og:image" content={data.shareImageUrl} />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="About MBTA Tracker | Search-First Boston Transit" />
+  <meta name="twitter:title" content="About MBTA Tracker | Search-First Boston Transit | By Aarti S Ravikumar" />
   <meta
     name="twitter:description"
     content="Learn how MBTA Tracker reduces cognitive load with a compact search-first transit experience."

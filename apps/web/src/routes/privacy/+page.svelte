@@ -6,8 +6,10 @@
 </script>
 
 <svelte:head>
-  <title>Privacy | MBTA Tracker</title>
+  <title>Privacy | MBTA Tracker | By Aarti S Ravikumar</title>
   <meta name="author" content="Aarti S Ravikumar" />
+  <meta name="creator" content="Aarti S Ravikumar" />
+  <meta name="copyright" content="Aarti S Ravikumar" />
   <meta
     name="description"
     content="Privacy information for MBTA Tracker, including telemetry, storage, and third-party services."
@@ -16,7 +18,7 @@
   <link rel="canonical" href={data.canonicalUrl} />
   <meta property="og:type" content="article" />
   <meta property="og:site_name" content="MBTA Tracker" />
-  <meta property="og:title" content="Privacy | MBTA Tracker" />
+  <meta property="og:title" content="Privacy | MBTA Tracker | By Aarti S Ravikumar" />
   <meta
     property="og:description"
     content="Privacy information for MBTA Tracker, including telemetry, storage, and third-party services."
@@ -24,7 +26,7 @@
   <meta property="og:url" content={data.canonicalUrl} />
   <meta property="og:image" content={data.shareImageUrl} />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Privacy | MBTA Tracker" />
+  <meta name="twitter:title" content="Privacy | MBTA Tracker | By Aarti S Ravikumar" />
   <meta
     name="twitter:description"
     content="Privacy information for MBTA Tracker, including telemetry, storage, and third-party services."

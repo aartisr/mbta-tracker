@@ -34,6 +34,26 @@
     sameAs: ['https://ai-aarti.com', 'https://github.com/aartisr']
   };
 
+  $: websiteSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    '@id': `${siteOrigin}/#website`,
+    name: 'MBTA Tracker',
+    url: siteOrigin,
+    creator: {
+      '@id': `${siteOrigin}/#author`
+    },
+    author: {
+      '@id': `${siteOrigin}/#author`
+    },
+    publisher: {
+      '@id': `${siteOrigin}/#organization`
+    },
+    copyrightHolder: {
+      '@id': `${siteOrigin}/#author`
+    }
+  };
+
   $: isEmbed = $page.url.pathname.startsWith('/embed');
 </script>
 
@@ -44,6 +64,7 @@
   <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
   <meta name="application-name" content="MBTA Tracker" />
   <meta name="author" content="Aarti S Ravikumar" />
+  <meta name="creator" content="Aarti S Ravikumar" />
   <meta name="copyright" content="Aarti S Ravikumar" />
   <meta name="apple-mobile-web-app-title" content="MBTA Tracker" />
   <meta name="geo.region" content="US-MA" />
@@ -71,6 +92,7 @@
   {/if}
   <script type="application/ld+json">{JSON.stringify(organizationSchema)}</script>
   <script type="application/ld+json">{JSON.stringify(authorSchema)}</script>
+  <script type="application/ld+json">{JSON.stringify(websiteSchema)}</script>
   {#if clarityProjectId}
     <script type="text/javascript">
       {`

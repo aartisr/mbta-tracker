@@ -1,6 +1,7 @@
 {
   "name": "mbta-tracker",
   "private": true,
+  "license": "MIT",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -26,7 +27,9 @@
     "deploy:cf:worker:dry-run": "cd apps/realtime-worker && npm run deploy:dry-run",
     "release:widget": "sh ./scripts/release-widget.sh",
     "deploy:widget": "sh ./scripts/deploy-widget.sh",
-    "embed:widget": "sh ./scripts/widget-embed-snippet.sh"
+    "embed:widget": "sh ./scripts/widget-embed-snippet.sh",
+    "seo:ctr:report": "node ./scripts/search-console-ctr-report.mjs",
+    "seo:ctr:report:help": "node ./scripts/search-console-ctr-report.mjs --help"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

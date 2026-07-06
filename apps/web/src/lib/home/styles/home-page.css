@@ -194,6 +194,15 @@
     font-weight: 700;
   }
 
+  .brand-byline {
+    margin: 0;
+    font-size: 0.55rem;
+    letter-spacing: 0.04em;
+    color: #64748b;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
   .main-nav {
     @apply flex items-center gap-1 flex-1 max-w-[31rem] p-1 rounded-full border;
     background: rgba(248, 251, 255, 0.88);
@@ -1380,6 +1389,11 @@
     .brand-tagline {
       font-size: 0.58rem;
       letter-spacing: 0.12em;
+    }
+
+    .brand-byline {
+      font-size: 0.5rem;
+      letter-spacing: 0.03em;
     }
 
     .main-nav {

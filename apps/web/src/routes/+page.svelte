@@ -990,7 +990,10 @@
     href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,700&display=swap"
     rel="stylesheet"
   />
-  <title>MBTA Tracker - Search First Transit</title>
+  <title>MBTA Tracker - Search First Transit | By Aarti S Ravikumar</title>
+  <meta name="author" content="Aarti S Ravikumar" />
+  <meta name="creator" content="Aarti S Ravikumar" />
+  <meta name="copyright" content="Aarti S Ravikumar" />
   <meta
     name="description"
     content="Search routes, stops, addresses, and vehicles in one calm MBTA experience with live arrivals and map context."
@@ -1003,7 +1006,7 @@
   <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="MBTA Tracker" />
-  <meta property="og:title" content="MBTA Tracker - Search First Transit" />
+  <meta property="og:title" content="MBTA Tracker - Search First Transit | By Aarti S Ravikumar" />
   <meta
     property="og:description"
     content="Find routes, stops, and live arrivals with a cleaner, faster MBTA search experience."
@@ -1014,7 +1017,7 @@
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="MBTA Tracker premium social preview with live transit, search, and map context." />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="MBTA Tracker - Search First Transit" />
+  <meta name="twitter:title" content="MBTA Tracker - Search First Transit | By Aarti S Ravikumar" />
   <meta
     name="twitter:description"
     content="Search MBTA routes, stops, addresses, and vehicles with live arrivals, map context, and fast planning."
@@ -1041,6 +1044,12 @@
             'query-input': 'required name=search_term_string'
           },
           author: {
+            '@id': `${new URL('/', data.canonicalUrl).toString()}#author`
+          },
+          creator: {
+            '@id': `${new URL('/', data.canonicalUrl).toString()}#author`
+          },
+          copyrightHolder: {
             '@id': `${new URL('/', data.canonicalUrl).toString()}#author`
           },
           publisher: {
@@ -1104,6 +1113,7 @@
         <div class="brand-lockup" aria-label="MBTA Tracker home">
           <p class="app-logo">MBTA</p>
           <p class="brand-tagline">Transit command center</p>
+          <p class="brand-byline">By Aarti S Ravikumar, Pioneer Charter School of Science II</p>
         </div>
         <nav class="main-nav" aria-label="Primary navigation">
           <button

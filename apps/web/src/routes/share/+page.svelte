@@ -117,8 +117,10 @@
 </script>
 
 <svelte:head>
-  <title>MBTA Tracker Share Page</title>
+  <title>MBTA Tracker Share Page | By Aarti S Ravikumar</title>
   <meta name="author" content="Aarti S Ravikumar" />
+  <meta name="creator" content="Aarti S Ravikumar" />
+  <meta name="copyright" content="Aarti S Ravikumar" />
   <meta
     name="description"
     content="MBTA Tracker is a compact search-first transit experience for Boston with live arrivals, nearby stops, route discovery, and an embeddable widget."
@@ -127,7 +129,7 @@
   <link rel="canonical" href={data.canonicalUrl} />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="MBTA Tracker" />
-  <meta property="og:title" content="MBTA Tracker | Search-first Boston transit" />
+  <meta property="og:title" content="MBTA Tracker | Search-first Boston transit | By Aarti S Ravikumar" />
   <meta
     property="og:description"
     content="Find the best stop, route, or vehicle in seconds with a compact transit experience designed for speed."
@@ -138,7 +140,7 @@
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="MBTA Tracker social preview" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="MBTA Tracker | Search-first Boston transit" />
+  <meta name="twitter:title" content="MBTA Tracker | Search-first Boston transit | By Aarti S Ravikumar" />
   <meta
     name="twitter:description"
     content="Live arrivals, nearby stop discovery, route detail, and compact transit insights for Boston."
@@ -153,6 +155,7 @@
     <div class="hero">
       <div class="eyebrow">Boston transit, redesigned for speed</div>
       <h1>MBTA Tracker helps people get the right transit answer in seconds.</h1>
+      <p class="author-byline">By Aarti S Ravikumar, Pioneer Charter School of Science II</p>
       <p class="lede">
         Search routes, stops, addresses, and vehicles first. Keep the map available when it helps,
         but let compact, glanceable results do the heavy lifting.
@@ -268,6 +271,15 @@
     line-height: 0.96;
     letter-spacing: -0.05em;
     color: #0f172a;
+  }
+
+  .author-byline {
+    margin: 0.5rem 0 0;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #0f766e;
+    text-transform: uppercase;
   }
 
   .lede {

@@ -5,7 +5,7 @@ MBTA Tracker is a realtime MBTA transit intelligence system with a configurable 
 This repository is both:
 
 - A production-minded transit product for fast decisions under real-world pressure.
-- A public, research-informed engineering artifact by Aarti S Ravikumar, built with gratitude for MBTA and for the people who rely on it every day.
+- A public, research-informed engineering artifact by Aarti Sri Ravikumar, Pioneer Charter School of Science II, built with gratitude for MBTA and for the people who rely on it every day.
 
 ## The Story (And Why It Matters)
 
@@ -163,6 +163,45 @@ From repo root (`/Users/rraviku2/aarti/mbta-tracker`):
 - `npm run release:widget`: build + fingerprint widget release artifacts into `release/widget`.
 - `npm run deploy:widget`: upload widget artifacts to S3/R2-compatible storage and print final public URLs.
 - `npm run embed:widget`: print ready-to-paste embed script tags (latest and pinned) from the release manifest.
+- `npm run seo:ctr:report`: generate a CTR opportunity report from Search Console CSV export.
+- `npm run seo:ctr:report:help`: show CLI help and supported columns/flags.
+
+## SEO Growth System
+
+This repo includes a full SEO operating system for content expansion and weekly optimization.
+
+Core files:
+
+- Strategy and rollout plan: [doc/SEO_CONTENT_ARCHITECTURE.md](doc/SEO_CONTENT_ARCHITECTURE.md)
+- Keyword-to-page execution map: [doc/SEO_KEYWORD_TO_PAGE_MAP.csv](doc/SEO_KEYWORD_TO_PAGE_MAP.csv)
+- Reusable page template: [doc/templates/SEO_LANDING_PAGE_TEMPLATE.md](doc/templates/SEO_LANDING_PAGE_TEMPLATE.md)
+
+Weekly loop:
+
+1. Export Search results CSV from Google Search Console.
+2. Run:
+
+```bash
+npm run seo:ctr:report -- --input path/to/search-console.csv --window-label "Last 28 days"
+```
+
+3. Open the generated report in `doc/reports/`.
+4. Prioritize high-impression low-CTR queries and update page titles, descriptions, and intro copy.
+5. Publish 2+ new pages from the keyword map each week.
+
+Initial SEO landing pages now available:
+
+- `/mbta/routes/red-line`
+- `/mbta/routes/red-line-tracker`
+- `/mbta/routes/orange-line`
+- `/mbta/routes/blue-line`
+- `/mbta/routes/green-line`
+- `/mbta/stops/north-station`
+- `/mbta/stops/south-station`
+- `/mbta/stops/park-street`
+- `/mbta/stops/government-center`
+- `/guides/how-to-check-mbta-delays`
+- `/guides/mbta-commute-planner`
 
 ## Widget Configuration
 
@@ -449,8 +488,9 @@ curl https://<worker>.<subdomain>.workers.dev/health
 
 ## Ownership And Credits
 
-- Repository owner and research lead: Aarti S Ravikumar
-- Copyright: Copyright (c) 2026 Aarti S Ravikumar
+- Author and research lead: Aarti Sri Ravikumar
+- School: Pioneer Charter School of Science II
+- Copyright: Copyright (c) 2026 Aarti Sri Ravikumar
 
 This repository is a personal expression of gratitude to MBTA.
 The work here is meant to honor the role MBTA has played in making Boston feel connected,
@@ -467,9 +507,13 @@ Credits and acknowledgments:
 
 If a contributor or source is missing here, please add them in a follow-up change so the credit list stays complete.
 
-Personal note from Aarti S Ravikumar:
+Personal note from Aarti Sri Ravikumar:
 
 > I grew up loving trains beside my parents, my hands against the window, believing every journey meant something-and in Boston, the MBTA quietly gave that feeling back to me when I needed it most. It became my lifeline, holding me through uncertain days and reminding me, without words, that I belong. This repo is my thank-you: a small way to give back to the system that carried me, and a hope that everyone, everywhere, gets to feel that same gentle certainty of being carried, connected, and at home.
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
 ## Contributing
 

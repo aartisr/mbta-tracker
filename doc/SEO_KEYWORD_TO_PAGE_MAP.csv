@@ -1,0 +1,21 @@
+cluster,intent,keyword,priority,url_slug,page_type,primary_metric,template
+red-line,transactional,red line arrivals,best,mbta/routes/red-line,route_page,clicks,doc/templates/SEO_LANDING_PAGE_TEMPLATE.md
+red-line,transactional,red line tracker,best,mbta/routes/red-line-tracker,route_page,clicks,doc/templates/SEO_LANDING_PAGE_TEMPLATE.md
+orange-line,transactional,orange line arrivals,best,mbta/routes/orange-line,route_page,clicks,doc/templates/SEO_LANDING_PAGE_TEMPLATE.md
+blue-line,transactional,blue line arrivals,high,mbta/routes/blue-line,route_page,clicks,doc/templates/SEO_LANDING_PAGE_TEMPLATE.md
+green-line,transactional,green line arrivals,high,mbta/routes/green-line,route_page,clicks,doc/templates/SEO_LANDING_PAGE_TEMPLATE.md
+commuter-rail,transactional,commuter rail tracker,high,mbta/routes/commuter-rail-tracker,route_page,clicks,doc/templates/SEO_LANDING_PAGE_TEMPLATE.md
+major-stops,navigational,north station arrivals,best,mbta/stops/north-station,stop_page,ctr,doc/templates/SEO_LANDING_PAGE_TEMPLATE.md
+major-stops,navigational,south station arrivals,best,mbta/stops/south-station,stop_page,ctr,doc/templates/SEO_LANDING_PAGE_TEMPLATE.md
+major-stops,navigational,park street station arrivals,high,mbta/stops/park-street,stop_page,ctr,doc/templates/SEO_LANDING_PAGE_TEMPLATE.md
+major-stops,navigational,government center arrivals,high,mbta/stops/government-center,stop_page,ctr,doc/templates/SEO_LANDING_PAGE_TEMPLATE.md
+rider-guides,informational,how to check mbta delays,high,guides/how-to-check-mbta-delays,guide_page,impressions,doc/templates/SEO_LANDING_PAGE_TEMPLATE.md
+rider-guides,informational,best time to take red line,high,guides/best-time-to-take-red-line,guide_page,impressions,doc/templates/SEO_LANDING_PAGE_TEMPLATE.md
+rider-guides,informational,mbta commute planner,best,guides/mbta-commute-planner,guide_page,clicks,doc/templates/SEO_LANDING_PAGE_TEMPLATE.md
+rider-guides,informational,mbta stop vs route search,medium,guides/mbta-stop-vs-route-search,guide_page,impressions,doc/templates/SEO_LANDING_PAGE_TEMPLATE.md
+trust-and-reliability,informational,is mbta tracker realtime,medium,guides/is-mbta-tracker-realtime,guide_page,ctr,doc/templates/SEO_LANDING_PAGE_TEMPLATE.md
+embed,commercial,mbta tracker widget,high,guides/mbta-tracker-widget,guide_page,clicks,doc/templates/SEO_LANDING_PAGE_TEMPLATE.md
+embed,commercial,embed mbta arrivals on website,high,guides/embed-mbta-arrivals-on-website,guide_page,clicks,doc/templates/SEO_LANDING_PAGE_TEMPLATE.md
+alerts,transactional,mbta service alerts today,high,guides/mbta-service-alerts-today,guide_page,clicks,doc/templates/SEO_LANDING_PAGE_TEMPLATE.md
+local-seo,navigational,boston mbta tracker,best,guides/boston-mbta-tracker,guide_page,clicks,doc/templates/SEO_LANDING_PAGE_TEMPLATE.md
+local-seo,navigational,cambridge mbta arrivals,medium,guides/cambridge-mbta-arrivals,guide_page,impressions,doc/templates/SEO_LANDING_PAGE_TEMPLATE.md
