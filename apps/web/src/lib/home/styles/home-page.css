@@ -446,7 +446,9 @@
   }
 
   .search-container {
-    @apply sticky top-24 z-30 rounded-[1.35rem] border mx-auto;
+    @apply rounded-[1.35rem] border mx-auto;
+    position: relative;
+    z-index: 1;
     padding: 0.9rem 1rem 0.85rem 1rem;
     width: 100%;
     background: rgba(255, 255, 255, 0.82);
