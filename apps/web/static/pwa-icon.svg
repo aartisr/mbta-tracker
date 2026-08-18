@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="MBTA Tracker">
+  <rect width="512" height="512" rx="112" fill="#12347a"/>
+  <path d="M110 392V150c0-27 22-49 49-49h194c27 0 49 22 49 49v242" fill="#fff"/>
+  <path d="M154 147h204v161H154z" fill="#dbeafe"/>
+  <path d="M178 174h156v86H178z" fill="#1d4ed8"/>
+  <path d="M208 202h96v30h-96z" fill="#fff"/>
+  <circle cx="184" cy="348" r="31" fill="#12347a"/>
+  <circle cx="328" cy="348" r="31" fill="#12347a"/>
+  <path d="M154 392h204M112 412h288" fill="none" stroke="#7dd3fc" stroke-linecap="round" stroke-width="20"/>
+</svg>

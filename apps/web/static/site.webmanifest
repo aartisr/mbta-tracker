@@ -1,16 +1,57 @@
 {
   "name": "MBTA Tracker",
-  "short_name": "MBTA",
+  "short_name": "MBTA Tracker",
   "description": "Search-first MBTA transit experience with live arrivals, routes, stops, and map context.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "background_color": "#f8fbff",
   "theme_color": "#1d4ed8",
   "lang": "en-US",
+  "prefer_related_applications": false,
+  "categories": ["travel", "navigation", "transportation"],
+  "shortcuts": [
+    {
+      "name": "Search transit",
+      "short_name": "Search",
+      "url": "/",
+      "icons": [{ "src": "/pwa-icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Service alerts",
+      "short_name": "Alerts",
+      "url": "/?view=alerts",
+      "icons": [{ "src": "/pwa-icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ],
   "icons": [
     {
-      "src": "/mbta-social-preview.svg",
+      "src": "/pwa-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/pwa-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/pwa-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"

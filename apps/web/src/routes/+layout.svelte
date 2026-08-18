@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import PwaInstallButton from '$lib/pwa/PwaInstallButton.svelte';
   const clarityProjectId = import.meta.env.PUBLIC_CLARITY_PROJECT_ID as string | undefined;
   const siteUrlFromEnv = import.meta.env.PUBLIC_SITE_URL as string | undefined;
   const googleSiteVerification = import.meta.env.PUBLIC_GOOGLE_SITE_VERIFICATION as string | undefined;
@@ -107,6 +108,9 @@
 </svelte:head>
 
 <div class:embed-shell={isEmbed} class="app-shell">
+  {#if !isEmbed}
+    <div class="pwa-install-slot"><PwaInstallButton /></div>
+  {/if}
   <slot />
 </div>
 
@@ -128,6 +132,13 @@
     --ui-danger: #b91c1c;
     --ui-focus: rgba(59, 130, 246, 0.24);
     --ui-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  }
+
+  .pwa-install-slot {
+    position: fixed;
+    z-index: 70;
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: max(1rem, env(safe-area-inset-bottom));
   }
 
   :global(body) {

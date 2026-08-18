@@ -42,6 +42,21 @@ The web app supports:
 - route and vehicle details
 - map and map-free modes
 - an embeddable widget API
+- an installable PWA shell with an explicit offline boundary
+
+### PWA Boundary
+
+PWA-specific code is intentionally kept outside tracker and domain modules:
+
+```text
+apps/web/src/
+├── service-worker.ts       # app-shell lifecycle and cache policy
+└── lib/pwa/
+    ├── install.ts          # typed install-prompt boundary
+    └── PwaInstallButton.svelte
+```
+
+The service worker precaches the built app shell and static files, uses network-first navigation with an offline fallback, and deliberately does **not** cache `/api/*` or MBTA API requests. Live transit data must never be presented as fresh while offline.
 
 ### Local API Server
 
@@ -346,4 +361,3 @@ This document reflects the current repository state as of the latest pass.
 - The current server composition root is `apps/server/src/api-server.ts`.
 - The tracker widget lives under `apps/web/src/lib/tracker/`.
 - The architecture includes the search-first homepage, embeddable widget, and Cloudflare Worker runtime.
-

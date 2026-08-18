@@ -26,7 +26,7 @@
 	let loading = true;
 	let error: string | null = null;
 	let lastUpdated = Date.now();
-	let refreshInterval: NodeJS.Timeout;
+	let refreshInterval: ReturnType<typeof setInterval>;
 	let isMounted = false;
 	let selectedArrival: ArrivalForecast | null = null;
 	let isOffline = false;

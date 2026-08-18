@@ -132,7 +132,7 @@
 	}
 
 	// Handle input change (debounced)
-	let debounceTimer: NodeJS.Timeout;
+	let debounceTimer: ReturnType<typeof setTimeout>;
 	function handleInput(event: Event) {
 		const input = event.target as HTMLInputElement;
 		searchInput = input.value;

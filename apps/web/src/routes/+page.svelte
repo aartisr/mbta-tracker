@@ -350,6 +350,9 @@
 
   onMount(() => {
     sessionId = getOrCreateSessionId();
+    if (new URLSearchParams(window.location.search).get('view') === 'alerts') {
+      currentView = 'alerts';
+    }
     void track('home_view_loaded', { route: 'search' });
   });
 

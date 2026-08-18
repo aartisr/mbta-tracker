@@ -4,7 +4,7 @@ import { MBTARepository, MockTransitDataRepository } from './repositories';
 describe('MBTARepository', () => {
   it('caches getAllStops responses', async () => {
     const repository = new MBTARepository();
-    const fetchSpy = vi.fn(async () => ({
+    const fetchSpy = vi.fn(async (_input: RequestInfo | URL) => ({
       ok: true,
       json: async () => ({
         data: [
