@@ -23,8 +23,19 @@ export function hashString(value: string): number {
   return Math.abs(hash >>> 0);
 }
 
+const bostonHourFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/New_York',
+  hour: '2-digit',
+  hourCycle: 'h23'
+});
+
+function bostonHour(timestampMs: number): number {
+  const hour = bostonHourFormatter.formatToParts(new Date(timestampMs)).find((part) => part.type === 'hour')?.value;
+  return Number(hour);
+}
+
 export function peakFactor(timestampMs: number): number {
-  const hour = new Date(timestampMs).getHours();
+  const hour = bostonHour(timestampMs);
   if ((hour >= 7 && hour <= 9) || (hour >= 16 && hour <= 19)) {
     return 1.25;
   }

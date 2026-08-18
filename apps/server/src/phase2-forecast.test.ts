@@ -16,6 +16,8 @@ describe('phase2-forecast', () => {
     const rush = new Date('2026-06-27T08:30:00-04:00').getTime();
     const offPeak = new Date('2026-06-27T13:30:00-04:00').getTime();
     expect(peakFactor(rush)).toBeGreaterThan(peakFactor(offPeak));
+    expect(peakFactor(rush)).toBe(1.25);
+    expect(peakFactor(offPeak)).toBe(1);
   });
 
   it('estimates crowding within bounded range', () => {
