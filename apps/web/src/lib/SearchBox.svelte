@@ -1066,7 +1066,7 @@
 			left: 0.75rem;
 			right: 0.75rem;
 			top: auto;
-			bottom: calc(env(safe-area-inset-bottom, 0px) + 0.75rem);
+			bottom: calc(env(safe-area-inset-bottom, 0px) + 5rem);
 			margin-top: 0;
 			max-height: min(48vh, 24rem);
 			border-radius: 1.35rem 1.35rem 1rem 1rem;

@@ -3666,7 +3666,8 @@
     }
 
     .map-recenter-btn {
-      top: 0.45rem;
+      top: auto;
+      bottom: max(0.5rem, calc(var(--safe-area-inset-bottom) + 0.5rem));
       right: 2.6rem;
       width: 2.15rem;
       height: 2.15rem;

@@ -1297,9 +1297,7 @@
     .header-layout {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
-      grid-template-areas:
-        'brand actions'
-        'nav nav';
+      grid-template-areas: 'brand actions';
       align-items: center;
       gap: 0.6rem 0.65rem;
       padding-left: 0.75rem;
@@ -1325,13 +1323,7 @@
     }
 
     .main-nav {
-      grid-area: nav;
-      width: 100%;
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 0.35rem;
-      padding: 0.35rem;
-      border-radius: 1.05rem;
+      display: none;
     }
 
     .nav-tab {
@@ -1368,11 +1360,7 @@
     }
 
     .share-link {
-      display: inline-flex;
-      min-height: 2.3rem;
-      padding-left: 0.62rem;
-      padding-right: 0.62rem;
-      font-size: 0.68rem;
+      display: none;
     }
 
     .header-layout {

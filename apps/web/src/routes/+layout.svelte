@@ -141,6 +141,12 @@
     bottom: max(1rem, env(safe-area-inset-bottom));
   }
 
+  @media (max-width: 640px) {
+    .pwa-install-slot {
+      bottom: max(5rem, calc(env(safe-area-inset-bottom) + 4.5rem));
+    }
+  }
+
   :global(body) {
     margin: 0;
     min-height: 100%;
