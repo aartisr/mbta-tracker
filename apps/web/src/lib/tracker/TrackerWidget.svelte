@@ -200,7 +200,7 @@
     if (!map || stops.length === 0 || typeof map.once !== 'function') return;
     const generation = ++stopRenderGeneration;
 
-    map.once('idle', () => {
+    const verify = () => {
       if (!map || generation !== stopRenderGeneration) return;
       const renderedStops = map.queryRenderedFeatures(undefined, {
         layers: ['stop-points', 'stop-points-fallback']
@@ -211,7 +211,13 @@
       } else {
         clearStopDomMarkers();
       }
-    });
+    };
+
+    // A blocked basemap request can prevent MapLibre from ever becoming idle.
+    // Check at idle when available, and after a bounded delay regardless, so a
+    // visible and interactive DOM marker is never held hostage by the basemap.
+    map.once('idle', verify);
+    window.setTimeout(verify, 900);
   }
 
   function scheduleMapResize() {
