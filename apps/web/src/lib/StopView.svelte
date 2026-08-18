@@ -1,9 +1,3 @@
-/**
- * Stop-Centric View
- * Most common view: shows all routes serving a stop, grouped by direction
- * with real-time arrivals for each route
- */
-
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { createEventDispatcher } from 'svelte';

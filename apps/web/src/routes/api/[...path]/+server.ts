@@ -72,9 +72,21 @@ export const GET: RequestHandler = async ({ params, url, platform }) => {
 
   if (segments[0] === 'stop' && segments[2] === 'arrivals') {
     const stopId = segments[1];
-    const data = await getStopArrivals(stopId);
-    if (!data) return badRequest(`Stop ${stopId} not found`, 404);
-    return json(data);
+    try {
+      const data = await getStopArrivals(stopId);
+      if (!data) return badRequest(`Stop ${stopId} not found`, 404);
+      return json(data);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Upstream transit service failed.';
+      const status = /HTTP 429\b/.test(message) ? 429 : 502;
+      return json({
+        error: status === 429 ? 'RateLimited' : 'UpstreamUnavailable',
+        message: status === 429
+          ? 'MBTA is rate-limiting arrival requests. Please try again shortly.'
+          : 'Live MBTA arrivals are temporarily unavailable. Please try again shortly.',
+        timestamp: Date.now()
+      }, { status });
+    }
   }
 
   if (segments[0] === 'stop' && segments[2] === 'crowding-forecast') {

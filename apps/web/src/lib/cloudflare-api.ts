@@ -638,25 +638,24 @@ function mapPredictionToArrival(
 }
 
 export async function getStopArrivals(stopId: string): Promise<StopArrivals | null> {
-  try {
-    const [stopResponse, predictionsResponse] = await Promise.all([
-      fetchJson<MBTAResponse<StopPayload>>(
-        `${MBTA_API_BASE}/stops/${encodeURIComponent(stopId)}?fields[stop]=name,latitude,longitude,accessibility`
-      ),
-      fetchJson<MBTAResponse<PredictionPayload[]>>(
-        `${MBTA_API_BASE}/predictions?filter[stop]=${encodeURIComponent(stopId)}&include=trip,route,vehicle,stop&fields[prediction]=arrival_time,departure_time,schedule_relationship,status&fields[trip]=headsign,direction_id&fields[route]=number,name,type,direction_names&fields[vehicle]=label,latitude,longitude,occupancy_status,current_status&sort=arrival_time&page[limit]=100`
-      )
-    ]);
+  const [stopResponse, predictionsResponse] = await Promise.all([
+    fetchJson<MBTAResponse<StopPayload>>(
+      `${MBTA_API_BASE}/stops/${encodeURIComponent(stopId)}?fields[stop]=name,latitude,longitude,accessibility`
+    ),
+    fetchJson<MBTAResponse<PredictionPayload[]>>(
+      `${MBTA_API_BASE}/predictions?filter[stop]=${encodeURIComponent(stopId)}&include=trip,route,vehicle,stop&fields[prediction]=arrival_time,departure_time,schedule_relationship,status&fields[trip]=headsign,direction_id&fields[route]=number,name,type,direction_names&fields[vehicle]=label,latitude,longitude,occupancy_status,current_status&sort=arrival_time&page[limit]=100`
+    )
+  ]);
 
-    const stop = stopResponse.data && stopResultFromPayload(stopResponse.data);
-    if (!stop) {
-      return null;
-    }
+  const stop = stopResponse.data && stopResultFromPayload(stopResponse.data);
+  if (!stop) {
+    return null;
+  }
 
-    const predictions = predictionsResponse.data || [];
-    const inbound: ArrivalForecast[] = [];
-    const outbound: ArrivalForecast[] = [];
-    const nowMs = now();
+  const predictions = predictionsResponse.data || [];
+  const inbound: ArrivalForecast[] = [];
+  const outbound: ArrivalForecast[] = [];
+  const nowMs = now();
 
     for (const prediction of predictions) {
       const routeId = prediction.relationships?.route?.data?.id;
@@ -698,21 +697,18 @@ export async function getStopArrivals(stopId: string): Promise<StopArrivals | nu
 
     const alerts: Alert[] = [];
 
-    return {
-      stop_id: stop.stop_id,
-      stop_name: stop.stop_name,
-      location: {
-        latitude: stop.latitude,
-        longitude: stop.longitude
-      },
-      inbound: inbound.slice(0, 10),
-      outbound: outbound.slice(0, 10),
-      alerts,
-      last_updated: now()
-    };
-  } catch {
-    return null;
-  }
+  return {
+    stop_id: stop.stop_id,
+    stop_name: stop.stop_name,
+    location: {
+      latitude: stop.latitude,
+      longitude: stop.longitude
+    },
+    inbound: inbound.slice(0, 10),
+    outbound: outbound.slice(0, 10),
+    alerts,
+    last_updated: now()
+  };
 }
 
 export async function getRouteStops(routeId: string, directionId?: number): Promise<RouteStopsResponse> {
