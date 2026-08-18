@@ -62,7 +62,8 @@ export class MBTARepository implements TransitDataRepository {
   async getAllStops(cacheMs = 24 * 60 * 60 * 1000): Promise<MBTAStop[]> {
     return this.getCachedOrFetch('stops', async () => {
       const stops: MBTAStop[] = [];
-      let nextUrl: string | null = `${this.baseUrl}/stops?filter[route_type]=0,1,2,3,4&sort=name&per_page=500`;
+      // MBTA V3 is JSON:API: use page[limit], not the unsupported per_page parameter.
+      let nextUrl: string | null = `${this.baseUrl}/stops?filter[route_type]=0,1,2,3,4&sort=name&page[limit]=500`;
 
       while (nextUrl) {
         const response = await fetch(nextUrl, {

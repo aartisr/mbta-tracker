@@ -28,6 +28,9 @@ describe('MBTARepository', () => {
     const second = await repository.getAllStops();
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const [requestUrl] = fetchSpy.mock.calls[0];
+    expect(requestUrl).toContain('page[limit]=500');
+    expect(requestUrl).not.toContain('per_page');
     expect(second).toEqual(first);
   });
 
