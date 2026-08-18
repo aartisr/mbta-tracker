@@ -812,7 +812,7 @@
   }
 
   .result-card {
-    @apply w-full flex flex-col gap-2 p-4 border rounded-2.5xl transition-all text-left cursor-pointer group;
+    @apply w-full flex flex-col gap-2 p-4 border rounded-2.5xl transition-all text-left cursor-pointer;
     min-height: 6.2rem;
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(250, 252, 255, 0.92) 100%);
     border-color: rgba(203, 213, 225, 0.6);
@@ -929,7 +929,7 @@
   }
 
   .result-arrow {
-    @apply flex-shrink-0 opacity-0 group-hover:opacity-100;
+    @apply flex-shrink-0 opacity-0;
     color: #0369a1;
     font-weight: 800;
     font-size: 1.2rem;
@@ -938,6 +938,7 @@
   }
 
   .result-card:hover .result-arrow {
+    opacity: 1;
     color: #0c4a6e;
     transform: translateX(4px);
   }
