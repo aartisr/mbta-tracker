@@ -196,4 +196,22 @@ describe('TrackerWidget', () => {
       expect(map.easeTo).toHaveBeenCalledWith({ center: [-71.06, 42.36], zoom: 13, duration: 500 });
     });
   });
+
+  it('uses a compact, credited control surface when embedded', async () => {
+    const capturing = createCapturingTransport();
+    const container = createTestContainer({
+      getTransport: () => capturing.transport,
+      getRepository: () => createMockRepository([sampleStop()]),
+      getGeoRepository: () => createMockGeoRepository({ latitude: 42.36, longitude: -71.06, timestamp: Date.now() })
+    });
+
+    const { getByText, queryByText } = render(TrackerWidget, {
+      config: { ...DEFAULT_TRACKER_CONFIG, embedded: true, compact: true },
+      container
+    });
+
+    expect(getByText('Created by Aarti S Ravikumar')).toBeInTheDocument();
+    expect(queryByText('Find Stops')).not.toBeInTheDocument();
+    expect(queryByText('Show details')).not.toBeInTheDocument();
+  });
 });

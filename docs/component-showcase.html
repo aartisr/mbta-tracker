@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MBTA Tracker Component Showcase | Embed live Boston transit</title>
+  <meta name="description" content="Copy one snippet to embed a calm, credited MBTA Tracker component in any application, school, newsroom, or community site.">
+  <link rel="canonical" href="https://mbta.ai-aarti.com/">
+  <link rel="stylesheet" href="assets/site.css">
+  <style>
+    .showcase { padding: 3.5rem 0; }
+    .embed-demo { margin: 2rem 0; overflow: hidden; border: 1px solid #d8e1ec; border-radius: 1.25rem; background: #fff; box-shadow: 0 18px 45px rgba(15,23,42,.1); }
+    .embed-demo iframe { display: block; width: 100%; min-height: 560px; border: 0; }
+    .snippet { overflow-x: auto; padding: 1rem; border-radius: 1rem; background: #0f172a; color: #e2e8f0; line-height: 1.55; }
+    .variants { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 1rem; margin-top: 1.5rem; }
+    .variants article { padding: 1.15rem; border: 1px solid #d8e1ec; border-radius: 1rem; background: #fff; }
+    code { font-size: .9em; }
+    @media (max-width: 700px) { .variants { grid-template-columns: 1fr; } .embed-demo iframe { min-height: 500px; } }
+  </style>
+</head>
+<body>
+<header><div class="wrap topbar"><a class="brand" href="https://mbta.ai-aarti.com/">MBTA Tracker</a><nav aria-label="Primary"><a href="index.html">Resources</a><a href="embed.html">Embed guide</a><a href="https://github.com/aartisr/mbta-tracker">GitHub ↗</a></nav></div></header>
+<main class="wrap showcase">
+  <p class="eyebrow">Plug-and-play component</p>
+  <h1>One snippet. Calm live transit context.</h1>
+  <p class="lede">The default component is designed for a host page, not a control room: search, mode choice, honest live state, and map context. Every instance includes a direct credit to MBTA Tracker and Aarti S Ravikumar.</p>
+  <pre class="snippet"><code>&lt;iframe
+  src="https://mbta.ai-aarti.com/embed"
+  title="MBTA Tracker: live Boston transit"
+  loading="lazy"
+  style="width:100%;min-height:560px;border:0;border-radius:20px;overflow:hidden"
+&gt;&lt;/iframe&gt;</code></pre>
+  <div class="embed-demo"><iframe src="https://mbta.ai-aarti.com/embed" title="MBTA Tracker compact component demonstration" loading="lazy"></iframe></div>
+  <section class="variants" aria-label="Embed presets">
+    <article><h2>Community default</h2><p>Use <code>/embed</code>. Best for schools, newsrooms, and neighborhood pages.</p></article>
+    <article><h2>Fixed display</h2><p>Use <code>/embed?search=false</code> for a focused live-map display.</p></article>
+    <article><h2>Operations view</h2><p>Use <code>/embed?compact=false&amp;list=true&amp;alerts=true</code> when an operator needs the full surface.</p></article>
+  </section>
+  <p>Need a script-tag or programmatic component? Read the <a href="https://github.com/aartisr/mbta-tracker/blob/main/doc/mbta-widget-embed.md">complete integration guide</a>.</p>
+</main>
+<footer><div class="wrap"><span>Created by <a href="https://ai-aarti.com">Aarti S Ravikumar</a></span><span><a href="https://mbta.ai-aarti.com/">Open MBTA Tracker</a></span></div></footer>
+</body>
+</html>

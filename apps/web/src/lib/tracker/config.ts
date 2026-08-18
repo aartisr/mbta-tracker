@@ -14,7 +14,8 @@ export const DEFAULT_TRACKER_CONFIG: TrackerWidgetConfig = {
   showList: true,
   showAlerts: true,
   showSearch: true,
-  embedded: false
+  embedded: false,
+  compact: false
 };
 
 function parseBoolean(value: string | null, fallback: boolean): boolean {
@@ -81,10 +82,11 @@ export function createTrackerConfig(url: URL, embedded = false): TrackerWidgetCo
     center,
     zoom: parseNumber(url.searchParams.get('zoom'), embedded ? 10.75 : DEFAULT_TRACKER_CONFIG.zoom),
     focusAddress: null,
-    showList: parseBoolean(url.searchParams.get('list'), DEFAULT_TRACKER_CONFIG.showList),
-    showAlerts: parseBoolean(url.searchParams.get('alerts'), DEFAULT_TRACKER_CONFIG.showAlerts),
+    showList: parseBoolean(url.searchParams.get('list'), embedded ? false : DEFAULT_TRACKER_CONFIG.showList),
+    showAlerts: parseBoolean(url.searchParams.get('alerts'), embedded ? false : DEFAULT_TRACKER_CONFIG.showAlerts),
     showSearch: parseBoolean(url.searchParams.get('search'), DEFAULT_TRACKER_CONFIG.showSearch),
-    embedded: parseBoolean(url.searchParams.get('embed'), embedded)
+    embedded: parseBoolean(url.searchParams.get('embed'), embedded),
+    compact: parseBoolean(url.searchParams.get('compact'), embedded)
   };
 }
 

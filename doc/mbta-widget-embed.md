@@ -12,12 +12,22 @@ Use an iframe for isolation and reliability:
 
 ```html
 <iframe
-  src="https://YOUR_DOMAIN/embed?embed=1&ws=wss://YOUR_FEED_HOST/ws"
-  title="MBTA Live Tracker"
+  src="https://mbta.ai-aarti.com/embed"
+  title="MBTA Tracker: live Boston transit"
   loading="lazy"
-  style="width:100%;height:720px;border:0;border-radius:20px;overflow:hidden"
+  style="width:100%;min-height:560px;border:0;border-radius:20px;overflow:hidden"
 ></iframe>
 ```
+
+That is all a host needs. The iframe defaults to the calm **compact preset**: map, search, live state, mode filter, and a visible credit link to MBTA Tracker and Aarti S Ravikumar. Live vehicle data is resolved by the tracker’s production configuration; a host only supplies `ws` when it intentionally operates its own compatible feed.
+
+## Choose a preset, not a pile of controls
+
+| Use case | URL | What riders see |
+| --- | --- | --- |
+| School, community, or article embed | `/embed` | Compact map-first tracker, search, mode filter, author credit |
+| Operations dashboard | `/embed?compact=false&list=true&alerts=true` | Full map controls, vehicle list, and disruption panel |
+| Fixed transit display | `/embed?search=false&compact=true` | Calm live-map display with only mode filters |
 
 ## Programmatic Mount
 
@@ -29,9 +39,9 @@ import { mountTracker } from '@your-package/tracker';
 mountTracker({
   target: document.getElementById('tracker-root')!,
   config: {
-    wsUrl: 'wss://YOUR_FEED_HOST/ws',
     title: 'MBTA Live',
-    embedded: false
+    embedded: true,
+    compact: true
   }
 });
 ```
@@ -46,6 +56,7 @@ If you are loading a browser bundle from a script tag, install the global helper
   data-ws="wss://YOUR_FEED_HOST/ws"
   data-title="MBTA Live"
   data-embed="true"
+  data-compact="true"
 ></div>
 
 <script type="module">
@@ -69,6 +80,7 @@ If you are loading a browser bundle from a script tag, install the global helper
 - `alerts` - `true` or `false` to show the status panel
 - `search` - `true` or `false` to show search
 - `embed` - `true` or `false` to switch to embedded layout mode
+- `compact` - `true` for the minimal map-first embed preset, `false` for full controls
 
 ### Data attributes for auto-mount
 
@@ -84,6 +96,7 @@ If you are loading a browser bundle from a script tag, install the global helper
 - `data-alerts` - `true` or `false`
 - `data-search` - `true` or `false`
 - `data-embed` - `true` or `false`
+- `data-compact` - `true` or `false`
 
 ## Default Behavior
 
@@ -91,14 +104,15 @@ If you do not provide values:
 
 - the widget uses a Boston-centered map
 - the default MapLibre demo style is used
-- the widget shows live vehicles, search, and status
+- iframe and script-tag embeds use the compact map-first preset
+- every instance shows a direct credit link to MBTA Tracker and Aarti S Ravikumar
 - the layout adapts to narrow screens automatically
 
 ## Example With Customization
 
 ```html
 <iframe
-  src="https://YOUR_DOMAIN/embed?embed=1&title=MBTA%20Live&subtitle=Downtown%20corridor&ws=wss://YOUR_FEED_HOST/ws&zoom=12&list=true&alerts=true"
+  src="https://mbta.ai-aarti.com/embed?title=MBTA%20Live&subtitle=Downtown%20corridor&zoom=12&compact=false&list=true&alerts=true"
   title="MBTA Live Tracker"
   loading="lazy"
   style="width:100%;height:640px;border:0;border-radius:20px;overflow:hidden"

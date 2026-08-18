@@ -72,4 +72,6 @@ export interface TrackerWidgetConfig {
   showAlerts: boolean;
   showSearch: boolean;
   embedded: boolean;
+  /** Compact is the calm, map-first preset intended for an iframe or host page. */
+  compact: boolean;
 }

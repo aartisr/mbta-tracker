@@ -70,6 +70,7 @@ function parseMountConfig(node: HTMLElement): Partial<TrackerWidgetConfig> {
   if (node.dataset.alerts) config.showAlerts = node.dataset.alerts === 'true';
   if (node.dataset.search) config.showSearch = node.dataset.search === 'true';
   if (node.dataset.embed) config.embedded = node.dataset.embed === 'true';
+  if (node.dataset.compact) config.compact = node.dataset.compact === 'true';
 
   return config;
 }

@@ -55,6 +55,9 @@ function parseScriptConfig(script: HTMLScriptElement | null): Partial<TrackerWid
   const embedded = parseBoolean(script.dataset.embed);
   if (embedded !== undefined) config.embedded = embedded;
 
+  const compact = parseBoolean(script.dataset.compact);
+  if (compact !== undefined) config.compact = compact;
+
   return config;
 }
 
@@ -90,6 +93,8 @@ function bootstrapOneLiner() {
   const host = createAutoHost(script);
   const config = {
     ...DEFAULT_TRACKER_CONFIG,
+    embedded: true,
+    compact: true,
     ...parseScriptConfig(script)
   };
 

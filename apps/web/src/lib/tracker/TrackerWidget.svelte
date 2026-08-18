@@ -91,6 +91,7 @@
   let headlineAlert: TrackerAlert | null = null;
   let previewVehicleId: string | null = null;
   let previewSource: 'map' | 'panel' | null = null;
+  $: isCompactEmbed = Boolean(config.embedded && config.compact);
 
   const emptyGeoJson: GeoJSON.FeatureCollection = {
     type: 'FeatureCollection',
@@ -1518,10 +1519,13 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/></svg>
         Map
       </button>
+      {#if !isCompactEmbed}
       <button class:active={viewMode === 'stops'} on:click={() => setViewMode('stops')} class="view-btn">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         Find Stops
       </button>
+      {/if}
+      {#if !isCompactEmbed}
       <button
         class:active={showMapDetails}
         type="button"
@@ -1535,6 +1539,7 @@
         <span>{showMapDetails ? 'Hide details' : 'Show details'}</span>
         <span class="details-toggle-icon" aria-hidden="true">{showMapDetails ? '−' : '+'}</span>
       </button>
+      {/if}
     </div>
 
     {#if config.showSearch && viewMode === 'map'}
@@ -1557,9 +1562,11 @@
       </label>
     {/if}
 
+    {#if !isCompactEmbed}
     <button class="share-view-btn" type="button" on:click={shareCurrentView} aria-label="Share this current map view">
       {shareViewLabel}
     </button>
+    {/if}
   </div>
 
   {#if viewMode === 'map' && searchStatus}
@@ -1569,7 +1576,7 @@
     </div>
   {/if}
 
-  {#if viewMode === 'map' && !showMapDetails}
+  {#if viewMode === 'map' && !showMapDetails && !isCompactEmbed}
     <div class="details-hint" role="note" aria-live="polite">
       <strong>Map first.</strong>
       <span>Details are collapsed. Tap Show details for alerts, vehicles, and more.</span>
@@ -1601,6 +1608,7 @@
       <section class="map-card" class:expanded={isMapExpanded}>
         <div class="map-frame" class:expanded={isMapExpanded}>
           <div bind:this={mapContainer} class="map" aria-label="Live map of MBTA vehicles"></div>
+          {#if !isCompactEmbed}
           <button
             type="button"
             class="map-expand-btn"
@@ -1616,6 +1624,7 @@
               <span>Full page map</span>
             {/if}
           </button>
+          {/if}
           <button
             type="button"
             class="map-recenter-btn"
@@ -1698,6 +1707,12 @@
       />
     </div>
   {/if}
+
+  <footer class="widget-credit">
+    <a href="https://mbta.ai-aarti.com" target="_blank" rel="noopener noreferrer">MBTA Tracker</a>
+    <span aria-hidden="true">·</span>
+    <span>Created by Aarti S Ravikumar</span>
+  </footer>
 </div>
 
 <style>
@@ -1742,6 +1757,29 @@
   :global(.dark-mode .embedded-shell) {
     background: rgba(15, 26, 42, 0.96);
   }
+
+  .widget-credit {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.32rem;
+    align-items: center;
+    justify-content: flex-end;
+    color: #64748b;
+    font-size: 0.68rem;
+    line-height: 1.25;
+  }
+
+  .widget-credit a {
+    color: #1d4ed8;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .widget-credit a:hover,
+  .widget-credit a:focus-visible { text-decoration: underline; }
+
+  :global(.dark-mode .widget-credit) { color: #cbd5e1; }
+  :global(.dark-mode .widget-credit a) { color: #93c5fd; }
 
   /* ===== HEADER ===== */
   .topbar {
