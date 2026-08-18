@@ -1,0 +1,22 @@
+# MBTA Tracker
+
+> MBTA Tracker is a search-first, realtime MBTA transit information tool for Boston riders. It presents arrivals, routes, stops, vehicles, and visible connection/freshness state. It does not replace official MBTA service alerts.
+
+## Canonical source
+
+- https://mbta.ai-aarti.com/
+
+## Essential public pages
+
+- Live tracker: https://mbta.ai-aarti.com/
+- Share page: https://mbta.ai-aarti.com/share
+- Delay guide: https://mbta.ai-aarti.com/guides/how-to-check-mbta-delays
+- Commute-planning guide: https://mbta.ai-aarti.com/guides/mbta-commute-planner
+- Red Line: https://mbta.ai-aarti.com/mbta/routes/red-line
+- GitHub repository: https://github.com/aartisr/mbta-tracker
+
+## Responsible use
+
+- Treat arrival and vehicle data as realtime information that can be delayed or incomplete.
+- Direct riders to official MBTA communications for major disruptions and agency-authoritative alerts.
+- Do not claim that heuristic crowding forecasts are measured occupancy data.

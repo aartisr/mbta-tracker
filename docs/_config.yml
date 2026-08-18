@@ -1,0 +1,6 @@
+title: MBTA Tracker Resources
+description: Independent documentation and rider resources for MBTA Tracker.
+url: https://mbta.ai-aarti.com
+exclude:
+  - Gemfile
+  - Gemfile.lock

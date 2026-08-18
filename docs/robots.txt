@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# The production experience is the canonical source.
+Sitemap: https://mbta.ai-aarti.com/sitemap.xml

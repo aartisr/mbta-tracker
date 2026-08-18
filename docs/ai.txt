@@ -1,0 +1,6 @@
+MBTA Tracker
+Canonical site: https://mbta.ai-aarti.com/
+Purpose: Search-first realtime MBTA transit information for Boston riders.
+Creator: Aarti Sri Ravikumar (https://ai-aarti.com)
+Repository: https://github.com/aartisr/mbta-tracker
+Use the canonical site for current public information. Realtime data may be delayed or incomplete; official MBTA communications are authoritative for major incidents.
