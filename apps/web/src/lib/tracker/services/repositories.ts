@@ -55,6 +55,7 @@ export interface GeoRepository {
 export class MBTARepository implements TransitDataRepository {
   private baseUrl = 'https://api-v3.mbta.com';
   private cache = new Map<string, { data: any; timestamp: number }>();
+  private inFlightRequests = new Map<string, Promise<unknown>>();
   // Separate short-lived cache for route-per-stop lookups (1 hour)
   private stopRouteCache = new Map<string, { routeIds: string[]; timestamp: number }>();
   private readonly STOP_ROUTE_CACHE_MS = 60 * 60 * 1000;
@@ -107,28 +108,56 @@ export class MBTARepository implements TransitDataRepository {
   }
 
   async getNearbyStops(location: GeoLocation, radiusMeters = 800): Promise<MBTAStop[]> {
-    const allStops = await this.getAllStops();
+    const safeRadiusMeters = Math.max(50, Math.min(radiusMeters, 8_000));
+    const cacheKey = `nearby:${location.latitude.toFixed(3)}:${location.longitude.toFixed(3)}:${safeRadiusMeters}`;
 
-    const nearby = allStops.filter((stop) => {
-      const distance = this.haversineDistance(
-        location.latitude,
-        location.longitude,
-        stop.latitude,
-        stop.longitude
-      );
-      return distance <= radiusMeters;
-    });
+    return this.getCachedOrFetch(cacheKey, async () => {
+      const params = new URLSearchParams({
+        'filter[latitude]': String(location.latitude),
+        'filter[longitude]': String(location.longitude),
+        // The MBTA API expresses this radius in degrees. Around Boston, 0.01°
+        // is roughly half a mile, so this slightly generous value preserves
+        // every stop inside the requested walking radius before local ranking.
+        'filter[radius]': String(safeRadiusMeters / 80_000),
+        'fields[stop]': 'name,latitude,longitude,wheelchair_boarding',
+        'page[limit]': '100',
+        sort: 'distance'
+      });
+      const response = await fetch(`${this.baseUrl}/stops?${params.toString()}`, {
+        headers: { Accept: 'application/vnd.api+json' }
+      });
 
-    // Fetch which routes actually serve each nearby stop so that the
-    // arrivals enricher can filter out vehicles whose routes don't stop here.
-    const withRoutes = await Promise.all(
-      nearby.map(async (stop) => {
-        const routeIds = await this.getStopRouteIds(stop.id);
-        return { ...stop, routeIds };
-      })
-    );
+      if (!response.ok) {
+        throw new Error(`MBTA API error: ${response.status}`);
+      }
 
-    return withRoutes;
+      const data = (await response.json()) as {
+        data?: Array<{
+          id?: string;
+          attributes?: {
+            name?: string;
+            latitude?: number;
+            longitude?: number;
+            wheelchair_boarding?: number;
+          };
+        }>;
+      };
+
+      return (data.data ?? [])
+        .filter((stop) => typeof stop.attributes?.latitude === 'number' && typeof stop.attributes?.longitude === 'number')
+        .map((stop) => ({
+          id: stop.id ?? 'unknown',
+          name: stop.attributes?.name ?? 'Unknown Stop',
+          latitude: stop.attributes?.latitude ?? 0,
+          longitude: stop.attributes?.longitude ?? 0,
+          wheelchairAccessible: stop.attributes?.wheelchair_boarding === 1
+        }))
+        .filter((stop) => this.haversineDistance(location.latitude, location.longitude, stop.latitude, stop.longitude) <= safeRadiusMeters)
+        .sort((first, second) =>
+          this.haversineDistance(location.latitude, location.longitude, first.latitude, first.longitude) -
+          this.haversineDistance(location.latitude, location.longitude, second.latitude, second.longitude)
+        );
+    }, 5 * 60 * 1000);
   }
 
   /**
@@ -209,9 +238,22 @@ export class MBTARepository implements TransitDataRepository {
       return cached.data as T;
     }
 
-    const data = await fetcher();
-    this.cache.set(key, { data, timestamp: Date.now() });
-    return data;
+    const inFlight = this.inFlightRequests.get(key) as Promise<T> | undefined;
+    if (inFlight) {
+      return inFlight;
+    }
+
+    const request = fetcher()
+      .then((data) => {
+        this.cache.set(key, { data, timestamp: Date.now() });
+        return data;
+      })
+      .finally(() => {
+        this.inFlightRequests.delete(key);
+      });
+
+    this.inFlightRequests.set(key, request);
+    return request;
   }
 
   private haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {

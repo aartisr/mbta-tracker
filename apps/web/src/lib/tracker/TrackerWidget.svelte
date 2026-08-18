@@ -36,8 +36,11 @@
 
   let mapContainer: HTMLDivElement | null = null;
   let map: import('maplibre-gl').Map | null = null;
+  let maplibreRuntime: typeof import('maplibre-gl') | null = null;
   let stopPopup: import('maplibre-gl').Popup | null = null;
   let vehiclePopup: import('maplibre-gl').Popup | null = null;
+  let stopDomMarkers: import('maplibre-gl').Marker[] = [];
+  let stopRenderGeneration = 0;
   let mapSourceReady = false;
   let mapReady = false;
   let mapLoadError: string | null = null;
@@ -151,6 +154,65 @@
   const MAX_STOPS_ON_MAP = 350;
   let allStops: MBTAStop[] = [];
   let resizeFrame: number | null = null;
+
+  function clearStopDomMarkers() {
+    stopDomMarkers.forEach((marker) => marker.remove());
+    stopDomMarkers = [];
+  }
+
+  function openStopPopup(stop: MBTAStop) {
+    if (!map) return;
+
+    stopPopup?.setLngLat([stop.longitude, stop.latitude]).setHTML(buildStopPopupLoadingHtml(stop)).addTo(map);
+    void fetchStopPredictions(stop.id, MBTA_API_KEY).then((arrivals) => {
+      if (stopPopup?.isOpen()) {
+        stopPopup.setHTML(buildStopPopupHtml(stop, arrivals));
+      }
+    });
+  }
+
+  function showStopDomMarkers(stops: MBTAStop[]) {
+    if (!map || !maplibreRuntime || stopDomMarkers.length > 0) return;
+    const maplibre = maplibreRuntime;
+
+    stopDomMarkers = stops.map((stop) => {
+      const element = document.createElement('button');
+      element.type = 'button';
+      element.className = 'stop-dom-marker';
+      element.setAttribute('aria-label', `View arrivals for ${stop.name}`);
+      element.title = stop.name;
+      if (stop.wheelchairAccessible) {
+        element.classList.add('is-accessible');
+      }
+      element.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        openStopPopup(stop);
+      });
+
+      return new maplibre.Marker({ element, anchor: 'bottom' })
+        .setLngLat([stop.longitude, stop.latitude])
+        .addTo(map as import('maplibre-gl').Map);
+    });
+  }
+
+  function verifyStopRendering(stops: MBTAStop[]) {
+    if (!map || stops.length === 0 || typeof map.once !== 'function') return;
+    const generation = ++stopRenderGeneration;
+
+    map.once('idle', () => {
+      if (!map || generation !== stopRenderGeneration) return;
+      const renderedStops = map.queryRenderedFeatures(undefined, {
+        layers: ['stop-points', 'stop-points-fallback']
+      });
+
+      if (renderedStops.length === 0) {
+        showStopDomMarkers(stops);
+      } else {
+        clearStopDomMarkers();
+      }
+    });
+  }
 
   function scheduleMapResize() {
     if (!map) {
@@ -503,6 +565,7 @@
     if (zoom < STREET_LEVEL_ZOOM) {
       mapStopHint = 'Zoom in to street level to see nearby stops.';
       source.setData(emptyGeoJson);
+      clearStopDomMarkers();
       return;
     }
 
@@ -514,11 +577,13 @@
     if (visibleStops.length === 0) {
       mapStopHint = 'No stops in this view. Pan slightly to find nearby stops.';
       source.setData(emptyGeoJson);
+      clearStopDomMarkers();
       return;
     }
 
     mapStopHint = `${visibleStops.length} nearby stops in this view`;
     source.setData(toStopFeatureCollection(visibleStops));
+    verifyStopRendering(visibleStops);
   }
 
   async function loadMapStops() {
@@ -823,6 +888,7 @@
           return;
         }
 
+        maplibreRuntime = maplibregl;
         map = new maplibregl.Map({
           container: mapContainer,
           style: config.mapStyle,
@@ -1352,13 +1418,7 @@
               wheelchairAccessible: properties.wheelchairAccessible === 1
             };
 
-            // Show loading state immediately — fetch real MBTA predictions async
-            stopPopup?.setLngLat([lon, lat]).setHTML(buildStopPopupLoadingHtml(stop)).addTo(map as import('maplibre-gl').Map);
-            void fetchStopPredictions(stop.id, MBTA_API_KEY).then((arrivals) => {
-              if (stopPopup?.isOpen()) {
-                stopPopup.setHTML(buildStopPopupHtml(stop, arrivals));
-              }
-            });
+            openStopPopup(stop);
           };
 
           for (const layerId of stopLayerIds) {
@@ -1384,6 +1444,8 @@
 
     return () => {
       cancelled = true;
+      clearStopDomMarkers();
+      maplibreRuntime = null;
       unsubscribeState?.();
       unsubscribeConnection?.();
       controller.stop();
@@ -2578,6 +2640,26 @@
   :global(.maplibregl-canvas) {
     position: absolute;
     inset: 0;
+  }
+
+  :global(.stop-dom-marker) {
+    width: 13px;
+    height: 13px;
+    padding: 0;
+    border: 2px solid #ffffff;
+    border-radius: 999px;
+    background: #64748b;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.36);
+    cursor: pointer;
+  }
+
+  :global(.stop-dom-marker.is-accessible) {
+    background: #0369a1;
+  }
+
+  :global(.stop-dom-marker:focus-visible) {
+    outline: 3px solid rgba(37, 99, 235, 0.45);
+    outline-offset: 2px;
   }
 
   :global(.maplibregl-ctrl-bottom-right) {
