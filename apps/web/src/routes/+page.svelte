@@ -88,7 +88,6 @@
   let onboardingProfile: OnboardingProfile = DEFAULT_ONBOARDING_PROFILE;
 
   const quickQueries = ['South Station now', 'Alewife', 'Red Line', '66', 'Harvard'];
-  const searchPrinciples = ['Fast boarding', 'Live arrivals', 'Map on demand'];
   type WorkflowIntent = {
     id: 'address' | 'route' | 'alerts' | 'map';
     title: string;
@@ -1111,9 +1110,7 @@
     <header class="app-header">
       <div class="header-layout">
         <div class="brand-lockup" aria-label="MBTA Tracker home">
-          <p class="app-logo">MBTA</p>
-          <p class="brand-tagline">Transit command center</p>
-          <p class="brand-byline">By Aarti S Ravikumar, Pioneer Charter School of Science II</p>
+          <p class="app-logo">MBTA Tracker</p>
         </div>
         <nav class="main-nav" aria-label="Primary navigation">
           <button
@@ -1205,29 +1202,6 @@
           </button>
         </div>
 
-        {#if showOnboardingHint && currentView === 'search' && !lastQuery}
-          <section class="onboarding-hint" aria-label="First-time transit guidance">
-            <div class="onboarding-copy">
-              <p class="onboarding-kicker">First time here?</p>
-              <h3>{onboardingHeadline}</h3>
-              <p>{onboardingTip} Use one-tap workflows above for fastest results with less scrolling.</p>
-              <p class="onboarding-why">{onboardingWhy}</p>
-            </div>
-            <div class="onboarding-actions">
-              <button
-                class="onboarding-primary"
-                on:click={() => {
-                  completeOnboarding(`onboarding_try_${onboardingPrimaryIntent}`);
-                  void executeWorkflowIntent(onboardingPrimaryIntent);
-                }}
-              >
-                {onboardingPrimaryAction}
-              </button>
-              <button class="onboarding-alt" on:click={() => void executeWorkflowIntent('map')}>Open map first</button>
-              <button class="onboarding-dismiss" on:click={() => completeOnboarding('onboarding_got_it')}>Got it</button>
-            </div>
-          </section>
-        {/if}
       </div>
 
       <!-- Settings Menu (Hidden by Default) -->
@@ -1300,9 +1274,7 @@
       <!-- Search View -->
       <div class="search-view">
         <HomeSearchFlow
-          searchPrinciples={searchPrinciples}
           workflowIntents={workflowIntents}
-          journeyStep={journeyStep}
           quickQueries={quickQueries}
           isSearching={isSearching}
           lastQuery={lastQuery}
@@ -1403,4 +1375,3 @@
 
   <HomeFooter />
 </div>
-
