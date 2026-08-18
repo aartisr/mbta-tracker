@@ -8,7 +8,7 @@
   import VehicleList from './VehicleList.svelte';
   import VehicleDetail from './VehicleDetail.svelte';
   import AlertsPanel from './AlertsPanel.svelte';
-  import { addVehicleIcons } from './map-icons';
+  import { addStopIcons, addVehicleIcons } from './map-icons';
   import { toFeatureCollection, toStopFeatureCollection } from './map-utils';
   import { buildStopPopupHtml, buildStopPopupLoadingHtml, fetchStopPredictions, buildVehiclePopupHtml, buildClusterPopupHtml } from './popup-builders';
 
@@ -517,7 +517,7 @@
       return;
     }
 
-    mapStopHint = `Showing ${visibleStops.length} nearby stops`;
+    mapStopHint = `${visibleStops.length} nearby stops in this view`;
     source.setData(toStopFeatureCollection(visibleStops));
   }
 
@@ -910,6 +910,10 @@
               console.warn('Vehicle icons unavailable; continuing without them.', error);
             });
 
+          void addStopIcons(map as import('maplibre-gl').Map).catch((error) => {
+            console.warn('Stop icons unavailable; using standard stop markers.', error);
+          });
+
           // Vehicle cluster circles with progressive sizing
           map?.addLayer({
             id: 'vehicle-clusters',
@@ -1135,7 +1139,22 @@
             }
           });
 
-          // Pin icon layer — replaces old plain circle
+          // Native markers stay visible even if custom pin images cannot load or
+          // MapLibre suppresses a symbol because it collides with a map label.
+          map?.addLayer({
+            id: 'stop-points-fallback',
+            type: 'circle',
+            source: 'stops',
+            paint: {
+              'circle-radius': ['interpolate', ['linear'], ['zoom'], STREET_LEVEL_ZOOM, 4.5, 17, 5.5, 19, 7],
+              'circle-color': ['case', ['==', ['get', 'wheelchairAccessible'], 1], '#0369a1', '#64748b'],
+              'circle-stroke-color': '#ffffff',
+              'circle-stroke-width': 1.5,
+              'circle-opacity': 0.96
+            }
+          });
+
+          // Pin icon layer adds visual detail when custom icons are available.
           map?.addLayer({
             id: 'stop-points',
             type: 'symbol',
@@ -1168,7 +1187,8 @@
 
           let hoveredStopFeatureId: number | string | null = null;
 
-          map?.on('mousemove', 'stop-points', (event) => {
+          const stopLayerIds = ['stop-points', 'stop-points-fallback'];
+          const handleStopMouseMove = (event: import('maplibre-gl').MapLayerMouseEvent) => {
             if (!map) return;
             map.getCanvas().style.cursor = 'pointer';
             const feature = event.features?.[0];
@@ -1179,16 +1199,21 @@
             }
             hoveredStopFeatureId = fid;
             map.setFeatureState({ source: 'stops', id: fid }, { hover: true });
-          });
+          };
 
-          map?.on('mouseleave', 'stop-points', () => {
+          const handleStopMouseLeave = () => {
             if (!map) return;
             map.getCanvas().style.cursor = '';
             if (hoveredStopFeatureId !== null) {
               map.setFeatureState({ source: 'stops', id: hoveredStopFeatureId }, { hover: false });
               hoveredStopFeatureId = null;
             }
-          });
+          };
+
+          for (const layerId of stopLayerIds) {
+            map?.on('mousemove', layerId, handleStopMouseMove);
+            map?.on('mouseleave', layerId, handleStopMouseLeave);
+          }
 
           map?.on('mouseenter', 'vehicle-points', (event) => {
             if (!map) {
@@ -1306,7 +1331,7 @@
             selectedVehicle(vehicle);
           });
 
-          map?.on('click', 'stop-points', (event) => {
+          const handleStopClick = (event: import('maplibre-gl').MapLayerMouseEvent) => {
             const feature = event.features?.[0];
             if (!feature || !feature.geometry || feature.geometry.type !== 'Point') {
               return;
@@ -1334,7 +1359,11 @@
                 stopPopup.setHTML(buildStopPopupHtml(stop, arrivals));
               }
             });
-          });
+          };
+
+          for (const layerId of stopLayerIds) {
+            map?.on('click', layerId, handleStopClick);
+          }
 
           updateMap(currentState.vehicles.filter(isVisible));
           void loadMapStops();

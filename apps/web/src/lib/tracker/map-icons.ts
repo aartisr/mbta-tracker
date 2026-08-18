@@ -313,6 +313,10 @@ export async function addVehicleIcons(
     }
   }
 
+}
+
+/** Register stop icons without coupling stop visibility to vehicle icons. */
+export async function addStopIcons(mapInstance: import('maplibre-gl').Map): Promise<void> {
   for (const accessible of [true, false]) {
     const stopIconName = accessible ? 'stop-icon-accessible' : 'stop-icon-standard';
     const stopImage = createStopIcon(accessible);
