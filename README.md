@@ -132,6 +132,22 @@ npm run dev:health
 npm run dev:stop
 ```
 
+## IndexNow submission
+
+The canonical sitemap is the source of truth for IndexNow. After deploying the site (including the root-level IndexNow key file), submit every canonical URL with:
+
+```bash
+npm run seo:indexnow
+```
+
+Preview the exact URL set without sending anything:
+
+```bash
+npm run seo:indexnow:dry-run
+```
+
+The tool verifies the live key file first, batches up to 10,000 URLs per request, and exits non-zero if IndexNow rejects a batch. A successful response confirms receipt for crawling; search-engine indexing itself is not guaranteed.
+
 ## Deploy on Cloudflare
 
 The free-tier deployment path is:
